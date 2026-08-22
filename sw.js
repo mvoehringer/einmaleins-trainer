@@ -1,6 +1,6 @@
 // Minimaler Offline-Cache: die App ist eine Datei plus Icon.
 // Bei jeder neuen Version den Namen hochzählen, dann räumt activate den alten Stand ab.
-const CACHE = 'hedi-1';
+const CACHE = 'hedi-2';
 const FILES = ['./', './index.html', './icon.png', './manifest.json'];
 
 self.addEventListener('install', e => {

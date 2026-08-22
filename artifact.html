@@ -147,11 +147,18 @@ button:focus-visible{outline:3px solid var(--accent); outline-offset:2px}
   flex:1; display:flex; flex-direction:column; align-items:center; justify-content:center;
   gap:4px; min-height:0;
 }
-.task{font-size:min(11.5vw, 6.5vh, 48px); font-weight:700; letter-spacing:.06em}
+/* Aufgabe und Eingabe stehen auf einer Zeile: „7 × 8 = 56".
+   Die Größe ist so gewählt, dass auch die längste Zeile („100 : 10 = 10")
+   in die 343px eines iPhone-Hochformats passt. */
+.eq{
+  display:flex; align-items:baseline; justify-content:center; gap:.22em;
+  font-size:min(12vw, 6.5vh, 46px); font-weight:700; letter-spacing:.03em;
+  width:100%;
+}
+.task{font-size:1em; white-space:nowrap}
 .answer{
-  font-size:min(14vw, 8vh, 58px); font-weight:700; color:var(--accent);
-  letter-spacing:.08em; min-width:2.4ch; text-align:center;
-  border-bottom:3px solid var(--line); padding:0 .2ch;
+  font-size:1em; color:var(--accent); min-width:2.2ch; text-align:center;
+  border-bottom:3px solid var(--line); padding:0 .12ch;
   animation:rise .22s ease-out;
 }
 .answer:empty::after{content:"\00a0"}
@@ -345,8 +352,10 @@ button:focus-visible{outline:3px solid var(--accent); outline-offset:2px}
       <div class="dots" id="dots"></div>
     </div>
     <div class="stage" id="stage">
-      <div class="task" id="task"></div>
-      <div class="answer" id="ans"></div>
+      <div class="eq">
+        <span class="task" id="task"></span>
+        <span class="answer" id="ans"></span>
+      </div>
       <div class="hint" id="hint"></div>
       <div class="tip" id="tip" hidden></div>
     </div>
@@ -1063,8 +1072,8 @@ function submit(){
     run.queue.push({ key: run.key, task: run.task,
                      at: Math.min(run.asked + REDO_GAP, SESSION_LEN - 1) });
     $('stage').classList.add('bad');
-    showAnswer(run.task.answer);          // die Lösung bleibt stehen
-    $('hint').textContent = `${run.task.text} = ${run.task.answer}`;
+    showAnswer(run.task.answer);          // die Lösung steht jetzt in der Zeile
+    $('hint').textContent = 'So kommst du drauf:';
     zeigeWeg();
   }
   draw();
