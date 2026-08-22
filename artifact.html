@@ -75,6 +75,16 @@ button:focus-visible{outline:3px solid var(--accent); outline-offset:2px}
   min-height:44px; padding:0 14px;
 }
 
+/* ---------- Reiter je Rechenart ---------- */
+.tabs{display:grid; grid-template-columns:repeat(4,1fr); gap:5px; flex:none}
+.tabs button{
+  min-height:44px; border-radius:11px; font-weight:700; font-size:clamp(13px, 1.9vh, 15px);
+  background:var(--card); border:1px solid var(--line); color:var(--muted);
+}
+.tabs button[aria-selected="true"]{
+  background:var(--accent); border-color:var(--accent); color:var(--accent-ink);
+}
+
 /* ---------- Landkarte: 10×10-Gitter ---------- */
 .map{
   background:var(--card); border:1px solid var(--line); border-radius:14px;
@@ -154,15 +164,21 @@ button:focus-visible{outline:3px solid var(--accent); outline-offset:2px}
 
 /* Wenig Höhe (Safari mit Adressleiste, kleine Geräte): Bedienelemente behalten
    ihre 44px, dafür schrumpfen Landkarte, Titel und Beiwerk. */
-@media (max-height: 640px){
-  #startSub{display:none}
+@media (max-height: 700px){
   .map{max-width:min(100%, 29vh)}
   .legend{min-height:1.6em; font-size:10px}
   h1{font-size:clamp(20px, 3.4vh, 26px)}
 }
-@media (max-height: 560px){
+@media (max-height: 600px){
   .legend{display:none}
   .map{max-width:min(100%, 26vh)}
+}
+/* Ganz wenig Höhe: die Reihen-Auswahl weicht, „Üben" genügt */
+@media (max-height: 500px){
+  .rows{display:none !important}
+  .steps{gap:2px}
+  .steps div{font-size:10px; padding:1px 4px}
+  .steps b{height:9px}
 }
 
 /* ---------- Zahlenpad ---------- */
@@ -196,9 +212,34 @@ button:focus-visible{outline:3px solid var(--accent); outline-offset:2px}
 .rows{display:grid; grid-template-columns:repeat(5,1fr); gap:7px; flex:none}
 .rows button{
   background:var(--card); border:1px solid var(--line); border-radius:10px;
-  min-height:46px; padding:0; font-weight:700; font-size:clamp(14px, 2vh, 16px);
+  min-height:46px; padding:0 0 5px; font-weight:700; font-size:clamp(14px, 2vh, 16px);
+  position:relative; overflow:hidden;
 }
 .rows button:active{background:var(--soft)}
+/* Farbbalken statt eingefärbter Fläche: die Beschriftung bleibt lesbar */
+.rows button::after{
+  content:''; position:absolute; left:0; right:0; bottom:0; height:5px;
+  background:var(--rowcolor, var(--s0));
+}
+.rows button[disabled]{opacity:.55; cursor:default}
+.rows button[disabled]::after{height:100%; opacity:.16}
+
+/* ---------- Plus und Minus: Typen statt Einzelaufgaben ---------- */
+.steps{
+  background:var(--card); border:1px solid var(--line); border-radius:14px;
+  padding:clamp(6px, 1.2vh, 10px); box-shadow:var(--shadow); flex:none;
+  display:flex; flex-direction:column; gap:clamp(3px, .7vh, 6px);
+}
+.steps div{
+  display:grid; grid-template-columns:1fr auto; align-items:center; gap:8px;
+  font-size:clamp(11px, 1.7vh, 13px); cursor:pointer;
+  padding:clamp(2px, .5vh, 5px) 4px; border-radius:6px;
+}
+.steps div:hover{background:var(--soft)}
+.steps b{
+  display:block; width:clamp(56px, 22vw, 84px); height:11px; border-radius:3px;
+  background:var(--s0);
+}
 .links{display:flex; justify-content:center; gap:8px; flex:none}
 
 /* ---------- Verlauf: ein Balken je Tag, eine Serie ---------- */
@@ -239,8 +280,8 @@ button:focus-visible{outline:3px solid var(--accent); outline-offset:2px}
   <!-- ---------- START ---------- -->
   <section id="s-start" class="screen on">
     <h1>Hedi Kopfrechnen</h1>
-    <p class="sub" id="startSub"></p>
-    <div class="map" id="grid"></div>
+    <div class="tabs" id="tabs"></div>
+    <div id="grid"></div>
     <p class="legend"></p>
     <div class="spacer"></div>
     <button class="big" id="go">Üben</button>
@@ -294,7 +335,7 @@ button:focus-visible{outline:3px solid var(--accent); outline-offset:2px}
       <div class="stat"><b id="dNew">0</b><span>neu gemerkt</span></div>
       <div class="stat"><b id="dStreak">0</b><span>Tage am Stück</span></div>
     </div>
-    <div class="map" id="grid2"></div>
+    <div id="grid2"></div>
     <p class="legend"></p>
     <div class="spacer"></div>
     <button class="big" id="home">Zur Landkarte</button>
@@ -320,7 +361,18 @@ const P_SLOW = 1;                     // richtig, aber gerechnet => eine Stufe
 const P_WRONG = 3;                    // Fehler kostet — löscht aber nie alles
 const INTERVAL = [0,1,2,4,8,16];      // INTERVAL[box] = Sessions bis wieder fällig
 
-/* ---------- Fakten & Schwierigkeit ---------- */
+/* ---------- Rechenarten, Aufgaben, Schwierigkeit ---------- */
+
+// Jede Rechenart hat einen eigenen Aufgabenraum, eigene Landkarte, eigenen Fortschritt.
+// Mal und Geteilt haben je 100 feste Aufgaben. Plus und Minus hätten tausende,
+// deshalb ist dort der "Fakt" ein Aufgabentyp und die Zahlen werden erzeugt.
+const MODES = ['m','d','p','s'];
+const MODE = {
+  m: { label:'Mal',     sign:'×', grid:true  },
+  d: { label:'Geteilt', sign:':', grid:true  },
+  p: { label:'Plus',    sign:'+', grid:false },
+  s: { label:'Minus',   sign:'−', grid:false }
+};
 
 const isEasyN = n => n===1 || n===2 || n===5 || n===10;
 
@@ -332,35 +384,112 @@ function difficulty(a, b){
   return 1;
 }
 
+const between = (lo, hi) => lo + Math.floor(Math.random() * (hi - lo + 1));
+
+// Aufgabentypen für Plus und Minus, vom Leichten zum Schweren.
+// gen() liefert die beiden Summanden. Zehner und Einer werden getrennt gewürfelt:
+// nur so ist "mit/ohne Zehnerübergang" garantiert und die 100 wird nie gerissen.
+const STEPS = [
+  { id:'z20', name:'bis 20', diff:0,
+    gen: () => { const b = between(2,9); return [between(2, 19-b), b]; } },
+
+  { id:'zeh', name:'glatte Zehner', diff:0,
+    gen: () => { const t = between(1,8); return [t*10, between(1, 10-t)*10]; } },
+
+  { id:'ze', name:'Zehner und Einer', diff:0,
+    gen: () => [between(1,9)*10, between(1,9)] },
+
+  { id:'e1', name:'einstellig, kein Übergang', diff:1,
+    gen: () => { const e = between(0,8); return [between(1,9)*10 + e, between(1, 9-e)]; } },
+
+  { id:'e2', name:'einstellig mit Übergang', diff:2,
+    gen: () => { const e = between(1,9); return [between(1,8)*10 + e, between(10-e, 9)]; } },
+
+  { id:'z1', name:'volle Zehner dazu', diff:1,
+    gen: () => { const t = between(1,8); return [t*10 + between(1,9), between(1, 9-t)*10]; } },
+
+  { id:'d1', name:'zweistellig, kein Übergang', diff:1,
+    gen: () => { const e = between(0,9), t = between(1,8);
+                 return [t*10 + e, between(1, 9-t)*10 + between(0, 9-e)]; } },
+
+  { id:'d2', name:'zweistellig mit Übergang', diff:2,
+    gen: () => { const e = between(1,9), t = between(1,7);
+                 return [t*10 + e, between(1, 8-t)*10 + between(10-e, 9)]; } }
+];
+
 function seedFacts(){
-  const facts = {};
+  const f = {};
+  const blank = box => ({ box, solved: 0, lastSession: 0, times: [], tries: 0, wrong: 0 });
   for (let a=1; a<=N; a++) for (let b=1; b<=N; b++){
-    const d = difficulty(a,b);
-    // box steuert nur die Wiedervorlage (nach Schwierigkeit vorbelegt),
-    // solved steuert die Farbe und startet immer bei null.
-    facts[a+'x'+b] = { box: d===0 ? 3 : d===1 ? 2 : 1, solved: 0, lastSession: 0,
-                       times: [], tries: 0, wrong: 0 };
+    const start = [3,2,1][difficulty(a,b)];      // leicht startet in Box 3, hart in Box 1
+    f['m:'+a+'x'+b] = blank(start);
+    f['d:'+(a*b)+'/'+b] = blank(start);          // dieselbe Aufgabe rückwärts
   }
-  return facts;
+  for (const st of STEPS){
+    const start = [3,2,1][st.diff];
+    f['p:'+st.id] = blank(start);
+    f['s:'+st.id] = blank(start);
+  }
+  return f;
 }
 
-const parse = k => k.split('x').map(Number);
+const modeOf = k => k[0];
+const bodyOf = k => k.slice(2);
+const factsOf = (st, mode) => Object.keys(st.facts).filter(k => modeOf(k) === mode);
+
+// Konkrete Aufgabe zu einem Fakt. Bei Plus/Minus sind die Zahlen jedes Mal andere,
+// deshalb hält die Runde das Ergebnis fest — sonst käme die Wiederholung
+// eines Fehlers mit anderen Zahlen daher.
+function makeTask(k){
+  const m = modeOf(k), body = bodyOf(k);
+  if (m === 'm'){ const [a,b] = body.split('x').map(Number); return { text:`${a} × ${b}`, answer:a*b }; }
+  if (m === 'd'){ const [p,b] = body.split('/').map(Number); return { text:`${p} : ${b}`, answer:p/b }; }
+  const [a,b] = STEPS.find(s => s.id === body).gen();
+  if (m === 'p') return { text:`${a} + ${b}`, answer:a+b };
+  return { text:`${a+b} − ${b}`, answer:a };     // Minus ist Plus rückwärts
+}
+
+// Schwierigkeit eines Fakts, unabhängig von der Rechenart
+function factDiff(k){
+  const m = modeOf(k), body = bodyOf(k);
+  if (m === 'm') return difficulty(...body.split('x').map(Number));
+  if (m === 'd'){ const [p,b] = body.split('/').map(Number); return difficulty(p/b, b); }
+  return STEPS.find(s => s.id === body).diff;
+}
+
+// Gehört ein Fakt zur Reihe n? (nur Mal und Geteilt)
+function inRow(k, n){
+  const m = modeOf(k), body = bodyOf(k);
+  if (m === 'm') return body.split('x').map(Number).includes(n);
+  if (m === 'd'){ const [p,b] = body.split('/').map(Number); return b === n || p/b === n; }
+  return false;
+}
 
 /* ---------- Persistenz ---------- */
 
 function fresh(){ return { facts: seedFacts(), session: 1, streak: 0, lastDay: null,
-                           shades: SHADES, days: {} }; }
+                           shades: SHADES, days: {}, mode: 'm' }; }
 
 function loadState(){
   try {
     const s = JSON.parse(localStorage.getItem(KEY));
-    if (s && s.facts && Object.keys(s.facts).length === N*N){
+    if (s && s.facts){
+      // Stände von vor den Rechenarten trugen blanke Schlüssel wie "7x8"
+      if (Object.keys(s.facts).some(k => !k.includes(':'))){
+        const alt = s.facts; s.facts = seedFacts();
+        for (const k in alt) if (s.facts['m:'+k]) s.facts['m:'+k] = alt[k];
+      }
+      // neu hinzugekommene Aufgaben ergänzen, ohne Bekanntes zu verlieren
+      const soll = seedFacts();
+      for (const k in soll) if (!s.facts[k]) s.facts[k] = soll[k];
+      if (!MODE[s.mode]) s.mode = 'm';
       // Stand einer anderen Skalenlänge anteilig umrechnen
       const old = s.shades || 0;
       Object.values(s.facts).forEach(f => {
         f.solved = (!old || f.solved == null) ? 0
                  : Math.min(SHADES, Math.round(f.solved * SHADES / old));
         if (f.tries == null) f.tries = f.times.length + f.wrong;   // Näherung für alte Stände
+        if (!f.times) f.times = [];
       });
       s.shades = SHADES;
       if (!s.days) s.days = {};   // Verlauf erst ab jetzt
@@ -387,21 +516,22 @@ function dueFacts(st){
 // Filter anwenden — aber nie den Topf leeren
 function narrow(pool, fn){ const s = pool.filter(fn); return s.length ? s : pool; }
 
-// ctx: { asked, lastKey, hardStreak, queue:[{key,at}], row }
+// ctx: { asked, lastKey, hardStreak, queue:[{key,task,at}], row, mode }
+// Liefert immer { key, task } — die Aufgabe gehört dazu, weil sie bei Plus/Minus
+// erzeugt wird und eine Wiederholung dieselben Zahlen zeigen muss.
 function pickNext(st, ctx){
   // 1. fällige Korrektur-Wiederholung hat Vorrang
   const qi = ctx.queue.findIndex(e => e.at <= ctx.asked);
-  if (qi >= 0) return ctx.queue.splice(qi, 1)[0].key;
+  if (qi >= 0){ const e = ctx.queue.splice(qi, 1)[0]; return { key: e.key, task: e.task || makeTask(e.key) }; }
 
-  const inRow = k => { const [a,b] = parse(k); return a === ctx.row || b === ctx.row; };
-  let pool = Object.keys(st.facts);
-  if (ctx.row) pool = pool.filter(inRow);
+  let pool = factsOf(st, ctx.mode);
+  if (ctx.row) pool = pool.filter(k => inRow(k, ctx.row));
 
   // Einstieg mit Erfolgserlebnis / Frust-Bremse nach zwei harten Aufgaben.
   // Beides steht VOR der Fälligkeit: am Anfang sind nur die harten Fakten fällig,
   // und eine Auffrischung ist besser als die dritte schwere Aufgabe in Folge.
-  if (ctx.asked < 2)            pool = narrow(pool, k => difficulty(...parse(k)) === 0);
-  else if (ctx.hardStreak >= 2) pool = narrow(pool, k => difficulty(...parse(k)) < 2);
+  if (ctx.asked < 2)            pool = narrow(pool, k => factDiff(k) === 0);
+  else if (ctx.hardStreak >= 2) pool = narrow(pool, k => factDiff(k) < 2);
 
   pool = narrow(pool, k => isDue(st, k));
   pool = narrow(pool, k => k !== ctx.lastKey);
@@ -414,8 +544,9 @@ function pickNext(st, ctx){
     return Math.max(1, (SHADES - f.solved) + Math.min(f.wrong, 3));
   };
   let r = Math.random() * pool.reduce((s,k) => s + w(k), 0);
-  for (const k of pool){ r -= w(k); if (r <= 0) return k; }
-  return pool[pool.length - 1];
+  let key = pool[pool.length - 1];
+  for (const k of pool){ r -= w(k); if (r <= 0){ key = k; break; } }
+  return { key, task: makeTask(key) };
 }
 
 // Die Runde ist vorbei, sobald der Fortschrittsbalken voll ist — nie später.
@@ -543,25 +674,69 @@ let run = null;   // laufende Session
 
 /* ---------- Landkarte ---------- */
 
-function renderGrid(el, won){
-  const cells = ['<div class="hd">×</div>'];
-  for (let b=1; b<=N; b++) cells.push(`<div class="hd">${b}</div>`);
+// Mal und Geteilt: 10×10-Gitter. Plus und Minus: die acht Aufgabentypen als Liste,
+// denn dort gibt es tausende Aufgaben, aber nur eine Handvoll Sorten.
+function renderGrid(el, won, mode){
+  mode = mode || st.mode;
   let nth = 0;
+  const frisch = k => won && won.includes(k);
+  const delay  = () => ` style="animation-delay:${(nth++) * .12 + .25}s"`;
+
+  if (!MODE[mode].grid){
+    el.className = 'steps';
+    el.innerHTML = STEPS.map(step => {
+      const k = mode + ':' + step.id;
+      return `<div data-k="${k}"><span>${step.name}</span>` +
+             `<b class="s${st.facts[k].solved}${frisch(k) ? ' won' : ''}"` +
+             `${frisch(k) ? delay() : ''}></b></div>`;
+    }).join('');
+    return;
+  }
+
+  el.className = 'map';
+  const kopf = mode === 'm' ? '×' : ':';
+  const cells = [`<div class="hd">${kopf}</div>`];
+  for (let b=1; b<=N; b++) cells.push(`<div class="hd">${b}</div>`);
   for (let a=1; a<=N; a++){
     cells.push(`<div class="hd">${a}</div>`);
     for (let b=1; b<=N; b++){
-      const k = a+'x'+b;
-      // frisch erobert => leuchtet nacheinander auf, damit man den Zugewinn sieht
-      const fresh = won && won.includes(k);
-      const delay = fresh ? ` style="animation-delay:${(nth++) * .12 + .25}s"` : '';
-      cells.push(`<div class="s${st.facts[k].solved}${fresh ? ' won' : ''}" data-k="${k}"${delay}></div>`);
+      const k = mode === 'm' ? `m:${a}x${b}` : `d:${a*b}/${b}`;
+      const f = frisch(k);
+      cells.push(`<div class="s${st.facts[k].solved}${f ? ' won' : ''}" data-k="${k}"${f ? delay() : ''}></div>`);
     }
   }
   el.innerHTML = cells.join('');
 }
 
+// Wie gut sitzt eine Reihe? Aus den gespeicherten Stufen aller ihrer Aufgaben.
+function rowState(mode, n){
+  const ks = factsOf(st, mode).filter(k => inRow(k, n));
+  const werte = ks.map(k => st.facts[k].solved);
+  return {
+    schnitt: werte.reduce((a,v) => a+v, 0) / werte.length,
+    schwaechste: Math.min(...werte),
+    // "sitzt" heißt: keine einzige Aufgabe der Reihe hängt noch zurück
+    sitzt: Math.min(...werte) >= SHADES - 1
+  };
+}
+
+function renderRows(){
+  const box = $('rows');
+  if (!MODE[st.mode].grid){ box.innerHTML = ''; box.style.display = 'none'; return; }
+  box.style.display = '';
+  box.innerHTML = Array.from({length:N}, (_, i) => {
+    const n = i + 1, r = rowState(st.mode, n);
+    const stufe = Math.round(r.schnitt);
+    const titel = r.sitzt ? `${n}er sitzt — alle Aufgaben auf Stufe ${SHADES-1} oder höher`
+                          : `${n}er — Schnitt Stufe ${stufe} von ${SHADES}`;
+    return `<button data-row="${n}" style="--rowcolor:var(--s${stufe})"` +
+           `${r.sitzt ? ' disabled' : ''} title="${titel}">` +
+           `${n}er${r.sitzt ? ' ✓' : ''}</button>`;
+  }).join('');
+}
+
 function stats(){
-  const f = Object.values(st.facts);
+  const f = factsOf(st, st.mode).map(k => st.facts[k]);
   return {
     neu:   f.filter(x => !x.times.length).length,
     offen: f.filter(x => x.times.length && x.solved < SHADES).length,
@@ -575,17 +750,22 @@ function showStorageWarning(){
   const t = stats();
   el.textContent = storageBroken
     ? 'Speichern klappt hier nicht — im Privat-Fenster geht der Fortschritt verloren'
-    : `${t.neu} neu · ${t.offen} am Üben · ${t.sitzt} sitzen`;
+    : `${t.neu} neu · ${t.offen} am Üben · ${t.sitzt} sitzen` +
+      (st.streak > 1 ? ` · ${st.streak} Tage am Stück` : '');
   el.style.color = storageBroken ? 'var(--warm)' : '';
 }
 
 function renderStart(){
   resetLegend[0]();
   renderGrid($('grid'));
-  $('startSub').textContent = st.streak > 1
-    ? `${st.streak} Tage am Stück`
-    : 'Rechne die Aufgaben aus dem Kopf';
+  renderRows();
+  renderTabs();
   showStorageWarning();   // Statistikzeile mitziehen
+}
+
+function renderTabs(){
+  $('tabs').innerHTML = MODES.map(m =>
+    `<button data-mode="${m}" aria-selected="${m === st.mode}">${MODE[m].label}</button>`).join('');
 }
 
 /* ---------- Verlauf zeichnen ---------- */
@@ -638,8 +818,8 @@ function dayLine(key){
 /* ---------- Session ---------- */
 
 function start(row){
-  run = { asked:0, right:0, up:0, won:[], lastKey:null, hardStreak:0, queue:[], row:row||0,
-          key:null, t0:0, input:'', locked:false };
+  run = { asked:0, right:0, up:0, won:[], lastKey:null, hardStreak:0, queue:[],
+          mode: st.mode, row: row||0, key:null, task:null, t0:0, input:'', locked:false };
   // Session hier hochzählen, nicht am Ende: eine abgebrochene Runde ist
   // trotzdem eine Runde, sonst rücken die Wiedervorlagen nie vor.
   st.session++;
@@ -651,11 +831,12 @@ function start(row){
 
 function next(){
   if (sessionOver(run)) return finish();
-  run.key = pickNext(st, run);
+  const pick = pickNext(st, run);
+  run.key  = pick.key;
+  run.task = pick.task;
   run.input = '';
   run.locked = false;
-  const [a,b] = parse(run.key);
-  $('task').textContent = `${a} × ${b} =`;
+  $('task').textContent = run.task.text + ' =';
   $('hint').textContent = '';
   $('stage').className = 'stage';
   showAnswer('');
@@ -677,15 +858,14 @@ function submit(){
   if (run.locked || !run.input) return;
   run.locked = true;
   const ms = performance.now() - run.t0;
-  const [a,b] = parse(run.key);
-  const correct = Number(run.input) === a*b;
+  const correct = Number(run.input) === run.task.answer;
   const before = st.facts[run.key].solved;
   const res = grade(st, run.key, correct, ms);
 
   run.asked++;
   if (correct) run.right++;
   if (res === 'up') run.up++;
-  run.hardStreak = difficulty(a,b) === 2 ? run.hardStreak + 1 : 0;
+  run.hardStreak = factDiff(run.key) === 2 ? run.hardStreak + 1 : 0;
   run.lastKey = run.key;
   logDay(correct, res === 'up');
 
@@ -704,10 +884,11 @@ function submit(){
   } else {
     // gleiche Aufgabe kommt in dieser Runde nochmal
     // Wiederholung ins verbleibende Fenster ziehen — die Runde wird davon nie länger.
-    run.queue.push({ key: run.key, at: Math.min(run.asked + REDO_GAP, SESSION_LEN - 1) });
+    run.queue.push({ key: run.key, task: run.task,
+                     at: Math.min(run.asked + REDO_GAP, SESSION_LEN - 1) });
     $('stage').classList.add('bad');
-    showAnswer(a*b);                      // die Lösung bleibt jetzt stehen
-    $('hint').textContent = `${a} × ${b} = ${a*b} — merk dir das`;
+    showAnswer(run.task.answer);          // die Lösung bleibt jetzt stehen
+    $('hint').textContent = `${run.task.text} = ${run.task.answer} — merk dir das`;
   }
   draw();
   saveState(st);
@@ -721,7 +902,7 @@ function finish(){
   $('dStreak').textContent = st.streak;
   const perfect = run.right === run.asked;
   $('doneTitle').textContent = perfect ? 'Alles richtig! 🌟' : 'Geschafft!';
-  renderGrid($('grid2'), run.won);
+  renderGrid($('grid2'), run.won, run.mode);
   show('s-done');
   celebrate(perfect ? 90 : run.won.length ? 55 : 30, 'rain');
 }
@@ -737,19 +918,22 @@ $('pad').innerHTML =
 // Zeigt beim Zeigen oder Antippen eines Feldes dessen Bilanz — ohne das Ergebnis,
 // sonst wird die Landkarte zum Spickzettel.
 function factLine(k){
-  const f = st.facts[k], [a,b] = parse(k);
-  if (!f.tries) return `${a} × ${b} — noch nicht geübt`;
-  const mal = f.tries === 1 ? 'mal' : 'mal';
-  return `${a} × ${b} — ${f.tries} ${mal} gerechnet · ${f.tries - f.wrong} richtig, ${f.wrong} falsch`;
+  const f = st.facts[k];
+  const m = modeOf(k), body = bodyOf(k);
+  const name = m === 'm' ? body.replace('x', ' × ')
+             : m === 'd' ? body.replace('/', ' : ')
+             : STEPS.find(x => x.id === body).name;
+  if (!f.tries) return `${name} — noch nicht geübt`;
+  return `${name} — ${f.tries} mal gerechnet · ${f.tries - f.wrong} richtig, ${f.wrong} falsch`;
 }
 
 function wireMap(mapEl, legendEl){
   const reset = () => { legendEl.classList.remove('info'); legendEl.innerHTML = legendHTML; };
   const show = e => {
-    const k = e.target.dataset && e.target.dataset.k;
-    if (!k) return;
+    const zelle = e.target.closest('[data-k]');
+    if (!zelle) return;
     legendEl.classList.add('info');
-    legendEl.textContent = factLine(k);
+    legendEl.textContent = factLine(zelle.dataset.k);
   };
   mapEl.addEventListener('mouseover', show);
   mapEl.addEventListener('mouseleave', reset);
@@ -814,7 +998,16 @@ $('lBars').addEventListener('mouseover', showDay);
 $('lBars').addEventListener('click', showDay);
 
 $('rows').addEventListener('click', e => {
-  const b = e.target.closest('button'); if (b) start(Number(b.dataset.row));
+  const b = e.target.closest('button');
+  if (b && !b.disabled) start(Number(b.dataset.row));
+});
+$('tabs').addEventListener('click', e => {
+  const b = e.target.closest('button');
+  if (!b) return;
+  st.mode = b.dataset.mode;
+  saveState(st);
+  renderStart();
+  $('go').textContent = MODE[st.mode].grid ? 'Üben' : `${MODE[st.mode].label} üben`;
 });
 $('exp').onclick = async () => {
   const label = $('exp');
@@ -841,92 +1034,97 @@ if (location.protocol.startsWith('http') && 'serviceWorker' in navigator){
    Selbst-Test — mit #test in der Adresse öffnen
    ============================================================ */
 
-window.__einmaleins = { seedFacts, difficulty, dueFacts, pickNext, grade, INTERVAL };
+window.__einmaleins = { seedFacts, difficulty, factDiff, makeTask, dueFacts, pickNext,
+                        grade, rowState, STEPS, MODES, INTERVAL };
 
 if (location.hash === '#test'){
   const fails = [];
   const ok = (name, cond) => { if (!cond) fails.push(name); };
   const mk = () => ({ facts: seedFacts(), session: 1, streak: 0, lastDay: null, shades: SHADES });
-  const ctx = o => Object.assign({ asked:5, lastKey:null, hardStreak:0, queue:[], row:0 }, o);
+  const ctx = o => Object.assign({ asked:5, lastKey:null, hardStreak:0, queue:[], row:0, mode:'m' }, o);
 
   // seedFacts
   const s0 = mk();
-  ok('100 Fakten', Object.keys(s0.facts).length === 100);
-  ok('7x8 startet unter 2x5', s0.facts['7x8'].box < s0.facts['2x5'].box);
+  ok('vier Rechenarten, 216 Aufgaben', Object.keys(s0.facts).length === 216);
+  ok('Mal und Geteilt je 100', factsOf(s0,'m').length === 100 && factsOf(s0,'d').length === 100);
+  ok('Plus und Minus je acht Typen', factsOf(s0,'p').length === 8 && factsOf(s0,'s').length === 8);
+  ok('7x8 startet unter 2x5', s0.facts['m:7x8'].box < s0.facts['m:2x5'].box);
 
   // grade
-  let s = mk(); s.facts['7x8'].box = 2;
-  ok('richtig+schnell steigt', grade(s,'7x8',true,1200) === 'up' && s.facts['7x8'].box === 3);
-  ok('richtig+langsam bleibt', grade(s,'7x8',true,8000) === 'stay' && s.facts['7x8'].box === 3);
-  ok('falsch faellt auf Box 1', grade(s,'7x8',false,1000) === 'down' && s.facts['7x8'].box === 1);
-  ok('Fehler wird gezaehlt', s.facts['7x8'].wrong === 1);
-  ok('Box 5 ist die Spitze', (() => { const x = mk(); x.facts['7x8'].box = 5;
-      return grade(x,'7x8',true,900) === 'up' && x.facts['7x8'].box === 5; })());
+  let s = mk(); s.facts['m:7x8'].box = 2;
+  ok('richtig+schnell steigt', grade(s,'m:7x8',true,1200) === 'up' && s.facts['m:7x8'].box === 3);
+  ok('richtig+langsam bleibt', grade(s,'m:7x8',true,8000) === 'stay' && s.facts['m:7x8'].box === 3);
+  ok('falsch faellt auf Box 1', grade(s,'m:7x8',false,1000) === 'down' && s.facts['m:7x8'].box === 1);
+  ok('Fehler wird gezaehlt', s.facts['m:7x8'].wrong === 1);
+  ok('Box 5 ist die Spitze', (() => { const x = mk(); x.facts['m:7x8'].box = 5;
+      return grade(x,'m:7x8',true,900) === 'up' && x.facts['m:7x8'].box === 5; })());
   ok('Landkarte startet komplett grau',
      Object.values(mk().facts).every(f => f.solved === 0));
   ok('schnell richtig: zwei Stufen, Deckel bei ' + SHADES, (() => {
       const x = mk(); const seen = [];
-      for (let i = 0; i < 7; i++){ grade(x,'7x8',true,900); seen.push(x.facts['7x8'].solved); }
+      for (let i = 0; i < 7; i++){ grade(x,'m:7x8',true,900); seen.push(x.facts['m:7x8'].solved); }
       return seen.join(',') === '2,4,6,8,9,9,9'; })());
   ok('langsam richtig: eine Stufe', (() => {
-      const x = mk(); grade(x,'7x8',true,9000); return x.facts['7x8'].solved === 1; })());
+      const x = mk(); grade(x,'m:7x8',true,9000); return x.facts['m:7x8'].solved === 1; })());
   ok('knapp unter der Schwelle zaehlt als schnell', (() => {
-      const x = mk(); return grade(x,'7x8',true,FAST_MS - 1) === 'up'; })());
+      const x = mk(); return grade(x,'m:7x8',true,FAST_MS - 1) === 'up'; })());
   ok('genau auf der Schwelle zaehlt als gerechnet', (() => {
-      const x = mk(); return grade(x,'7x8',true,FAST_MS) === 'stay'; })());
+      const x = mk(); return grade(x,'m:7x8',true,FAST_MS) === 'stay'; })());
   ok('erste Antwort ist sofort sichtbar', (() => {
-      const x = mk(); grade(x,'7x8',true,9000); return x.facts['7x8'].solved > 0; })());
+      const x = mk(); grade(x,'m:7x8',true,9000); return x.facts['m:7x8'].solved > 0; })());
   ok('Fehler kostet, loescht aber nicht alles', (() => {
-      const x = mk(); for (let i=0;i<5;i++) grade(x,'7x8',true,900);   // = 9, der Deckel
-      grade(x,'7x8',false,900); return x.facts['7x8'].solved === 6; })());
+      const x = mk(); for (let i=0;i<5;i++) grade(x,'m:7x8',true,900);   // = 9, der Deckel
+      grade(x,'m:7x8',false,900); return x.facts['m:7x8'].solved === 6; })());
   ok('Fehler kann nicht unter null', (() => {
-      const x = mk(); grade(x,'7x8',false,900); return x.facts['7x8'].solved === 0; })());
+      const x = mk(); grade(x,'m:7x8',false,900); return x.facts['m:7x8'].solved === 0; })());
 
   // dueFacts
-  s = mk(); s.facts['7x8'].box = 5; s.facts['7x8'].lastSession = 1;
-  s.session = 4;  ok('Box5 nach 3 Sessions nicht faellig', !dueFacts(s).includes('7x8'));
-  s.session = 17; ok('Box5 nach 16 Sessions faellig',       dueFacts(s).includes('7x8'));
+  s = mk(); s.facts['m:7x8'].box = 5; s.facts['m:7x8'].lastSession = 1;
+  s.session = 4;  ok('Box5 nach 3 Sessions nicht faellig', !dueFacts(s).includes('m:7x8'));
+  s.session = 17; ok('Box5 nach 16 Sessions faellig',       dueFacts(s).includes('m:7x8'));
 
   // pickNext
   s = mk();
   ok('nie zweimal dieselbe', Array.from({length:300},
-    () => pickNext(s, ctx({ lastKey:'7x8' }))).every(k => k !== '7x8'));
+    () => pickNext(s, ctx({ lastKey:'m:7x8' })).key).every(k => k !== 'm:7x8'));
   ok('Einstieg ist leicht', Array.from({length:200},
-    () => pickNext(s, ctx({ asked:0 }))).every(k => difficulty(...parse(k)) === 0));
+    () => pickNext(s, ctx({ asked:0 })).key).every(k => factDiff(k) === 0));
   ok('Frust-Bremse greift', Array.from({length:200},
-    () => pickNext(s, ctx({ hardStreak:2 }))).every(k => difficulty(...parse(k)) < 2));
+    () => pickNext(s, ctx({ hardStreak:2 })).key).every(k => factDiff(k) < 2));
   ok('Reihe bleibt in der Reihe', Array.from({length:200},
-    () => pickNext(s, ctx({ row:7 }))).every(k => parse(k).includes(7)));
-  const q = ctx({ asked:9, queue:[{ key:'6x7', at:8 }] });
-  ok('faellige Wiederholung zuerst', pickNext(s, q) === '6x7' && q.queue.length === 0);
+    () => pickNext(s, ctx({ row:7 })).key).every(k => inRow(k, 7)));
+  const q = ctx({ asked:9, queue:[{ key:'m:6x7', task:{text:'6 × 7', answer:42}, at:8 }] });
+  const wieder = pickNext(s, q);
+  ok('faellige Wiederholung zuerst', wieder.key === 'm:6x7' && q.queue.length === 0);
+  ok('Wiederholung bringt dieselbe Aufgabe mit', wieder.task.answer === 42);
 
   // Fehler taucht innerhalb von 5 Aufgaben wieder auf
-  const c = ctx({ asked:0, queue:[{ key:'6x8', at: REDO_GAP }] });
+  const c = ctx({ asked:0, queue:[{ key:'m:6x8', task:makeTask('m:6x8'), at: REDO_GAP }] });
   let seen = false;
-  for (let i=1; i<=5; i++){ c.asked = i; if (pickNext(s, c) === '6x8') seen = true; }
+  for (let i=1; i<=5; i++){ c.asked = i; if (pickNext(s, c).key === 'm:6x8') seen = true; }
   ok('Fehler kommt binnen 5 Aufgaben wieder', seen);
 
   // Simulation: wer alles schnell richtig hat, bekommt die Landkarte voll
   s = mk();
   for (let sess = 0; sess < 120; sess++){
-    const sim = { asked:0, lastKey:null, hardStreak:0, queue:[], row:0 };
+    const sim = { asked:0, lastKey:null, hardStreak:0, queue:[], row:0, mode:'m' };
     while (sim.asked < SESSION_LEN && sim.asked < 200){
-      const k = pickNext(s, sim);
+      const k = pickNext(s, sim).key;
       grade(s, k, true, 1000);
       sim.asked++; sim.lastKey = k;
-      sim.hardStreak = difficulty(...parse(k)) === 2 ? sim.hardStreak + 1 : 0;
+      sim.hardStreak = factDiff(k) === 2 ? sim.hardStreak + 1 : 0;
     }
     s.session++;
   }
   ok('genug perfekte Runden fuellen die Landkarte',
-     Object.values(s.facts).filter(f => f.solved >= SHADES).length === 100);
+     factsOf(s,'m').filter(k => s.facts[k].solved >= SHADES).length === 100);
 
   // Runde endet punktgenau bei SESSION_LEN — auch wenn jede zweite Antwort falsch ist
   s = mk();
-  const sim = { asked:0, lastKey:null, hardStreak:0, queue:[], row:0 };
+  const sim = { asked:0, lastKey:null, hardStreak:0, queue:[], row:0, mode:'m' };
   let guard = 0;
   while (!sessionOver(sim) && guard++ < 500){
-    const k = pickNext(s, sim);
+    const k = pickNext(s, sim).key;
     const right = sim.asked % 2 === 0;
     grade(s, k, right, 1000);
     if (!right) sim.queue.push({ key: k, at: Math.min(sim.asked + 1 + REDO_GAP, SESSION_LEN - 1) });
@@ -939,27 +1137,27 @@ if (location.hash === '#test'){
   s = mk();
   const before = s.session;
   s.session++;                       // = was start() tut
-  grade(s, '7x8', true, 1000);       // eine Antwort, dann Abbruch
+  grade(s, 'm:7x8', true, 1000);       // eine Antwort, dann Abbruch
   ok('abgebrochene Runde zaehlt', s.session === before + 1);
-  ok('Antwort ist der neuen Runde zugeordnet', s.facts['7x8'].lastSession === before + 1);
+  ok('Antwort ist der neuen Runde zugeordnet', s.facts['m:7x8'].lastSession === before + 1);
 
   // Auswahl bevorzugt Ungeübtes: noch nie gesehen vor wackelig vor sitzt
   s = mk();
   Object.values(s.facts).forEach(f => { f.times = [1000]; f.solved = SHADES; });
-  s.facts['6x7'].times = [];                                  // noch nie gesehen
-  s.facts['4x9'].solved = 1;                                  // wackelt
+  s.facts['m:6x7'].times = [];                                  // noch nie gesehen
+  s.facts['m:4x9'].solved = 1;                                  // wackelt
   ok('nie gesehene Aufgabe kommt am haeufigsten', (() => {
       const hits = {};
       for (let i = 0; i < 400; i++){
-        const k = pickNext(s, ctx({ asked:5 }));
+        const k = pickNext(s, ctx({ asked:5 })).key;
         hits[k] = (hits[k] || 0) + 1;
       }
-      return (hits['6x7'] || 0) > (hits['4x9'] || 0) && (hits['4x9'] || 0) > (hits['3x3'] || 0);
+      return (hits['m:6x7'] || 0) > (hits['m:4x9'] || 0) && (hits['m:4x9'] || 0) > (hits['m:3x3'] || 0);
     })());
   ok('sitzende Aufgabe wird nie ganz ausgeschlossen', (() => {
       const x = mk();
       Object.values(x.facts).forEach(f => { f.times = [1000]; f.solved = SHADES; f.box = 5; });
-      return typeof pickNext(x, ctx({ asked:5 })) === 'string';
+      return typeof pickNext(x, ctx({ asked:5 })).key === 'string';
     })());
 
   ok('zehn Farbkodierungen', SHADES + 1 === 10);
@@ -967,10 +1165,10 @@ if (location.hash === '#test'){
 
   ok('Versuche werden gezaehlt', (() => {
       const x = mk();
-      grade(x,'7x8',true,900); grade(x,'7x8',false,900); grade(x,'7x8',true,9000);
-      const f = x.facts['7x8'];
+      grade(x,'m:7x8',true,900); grade(x,'m:7x8',false,900); grade(x,'m:7x8',true,9000);
+      const f = x.facts['m:7x8'];
       return f.tries === 3 && f.wrong === 1 && f.tries - f.wrong === 2; })());
-  ok('ungeuebtes Feld hat null Versuche', mk().facts['6x7'].tries === 0);
+  ok('ungeuebtes Feld hat null Versuche', mk().facts['m:6x7'].tries === 0);
 
   // Tagesverlauf
   ok('Verlauf zaehlt pro Tag', (() => {
@@ -995,6 +1193,54 @@ if (location.hash === '#test'){
       const d = st.days[dayStamp(Date.now())];
       const good = d.n === 3 && d.right === 1 && d.n - d.right === 2;
       st = save; return good; })());
+
+  // --- Rechenarten ---
+  ok('Reiter mischen sich nicht', Array.from({length:300},
+     () => pickNext(mk(), ctx({ mode:'p' })).key).every(k => modeOf(k) === 'p'));
+  ok('Division ist die Umkehrung', (() => {
+      const t = makeTask('d:56/7'); return t.text === '56 : 7' && t.answer === 8; })());
+  ok('Malaufgabe stimmt', (() => {
+      const t = makeTask('m:7x8'); return t.text === '7 × 8' && t.answer === 56; })());
+  ok('Plus und Minus bleiben im Zahlenraum bis 100', (() => {
+      for (const step of STEPS) for (const m of ['p','s'])
+        for (let i = 0; i < 400; i++){
+          const t = makeTask(m + ':' + step.id);
+          const [x,,y] = t.text.split(' ');
+          if (+x > 100 || +y > 100 || t.answer > 100 || t.answer < 0) return false;
+        }
+      return true; })());
+  ok('Minus ergibt nie etwas Negatives', (() => {
+      for (const step of STEPS) for (let i = 0; i < 400; i++)
+        if (makeTask('s:' + step.id).answer < 0) return false;
+      return true; })());
+  ok('Uebergangs-Typen halten ihre Zusage', (() => {
+      const pruef = (id, soll) => {
+        for (const m of ['p','s']) for (let i = 0; i < 400; i++){
+          const t = makeTask(m + ':' + id);
+          const [x,,y] = t.text.split(' ');
+          const [a,b] = m === 'p' ? [+x,+y] : [+x - +y, +y];
+          if (((a % 10) + (b % 10) > 9) !== soll) return false;
+        }
+        return true;
+      };
+      return pruef('e1', false) && pruef('d1', false)
+          && pruef('e2', true)  && pruef('d2', true); })());
+
+  // --- Reihen-Zustand ---
+  ok('gekonnte Reihe wird als sitzend erkannt', (() => {
+      const x = mk();
+      factsOf(x,'m').filter(k => inRow(k,7)).forEach(k => x.facts[k].solved = SHADES);
+      const save = st; st = x; const r = rowState('m', 7); st = save;
+      return r.sitzt && r.schnitt === SHADES; })());
+  ok('eine schwache Aufgabe haelt die Reihe offen', (() => {
+      const x = mk();
+      factsOf(x,'m').filter(k => inRow(k,7)).forEach(k => x.facts[k].solved = SHADES);
+      x.facts['m:7x8'].solved = 2;
+      const save = st; st = x; const r = rowState('m', 7); st = save;
+      return !r.sitzt; })());
+  ok('frische Reihe ist nicht gekonnt', (() => {
+      const save = st; st = mk(); const r = rowState('m', 7); st = save;
+      return !r.sitzt && r.schnitt === 0; })());
 
   const msg = fails.length ? `${fails.length} Fehler: ${fails.join(' · ')}` : 'alle Tests grün';
   console.log(msg);
