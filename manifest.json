@@ -1,0 +1,15 @@
+{
+  "name": "Hedi Kopfrechnen",
+  "short_name": "Hedi",
+  "description": "Einmaleins üben — bis es im Kopf sitzt.",
+  "start_url": "./index.html",
+  "scope": "./",
+  "display": "standalone",
+  "orientation": "portrait",
+  "background_color": "#f2f4f7",
+  "theme_color": "#09687d",
+  "icons": [
+    { "src": "icon.png", "sizes": "512x512", "type": "image/png", "purpose": "any" },
+    { "src": "icon.png", "sizes": "512x512", "type": "image/png", "purpose": "maskable" }
+  ]
+}

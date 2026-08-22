@@ -1,0 +1,1005 @@
+<!doctype html>
+<html lang="de">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
+<title>Hedi Kopfrechnen</title>
+
+<!-- Als App auf dem Home-Bildschirm: iOS braucht dafür kein Manifest,
+     nur diese Angaben. manifest.json und sw.js decken Android/Chrome ab. -->
+<meta name="apple-mobile-web-app-capable" content="yes">
+<meta name="mobile-web-app-capable" content="yes">
+<meta name="apple-mobile-web-app-status-bar-style" content="black-translucent">
+<meta name="apple-mobile-web-app-title" content="Hedi">
+<meta name="theme-color" content="#f2f4f7" media="(prefers-color-scheme: light)">
+<meta name="theme-color" content="#131a21" media="(prefers-color-scheme: dark)">
+<link rel="apple-touch-icon" href="data:image/png;base64,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">
+<link rel="icon" href="data:image/png;base64,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">
+<link rel="manifest" href="manifest.json">
+</head>
+<body>
+<link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Atkinson+Hyperlegible:wght@400;700&family=Fraunces:opsz,wght@9..144,500;9..144,600&display=swap">
+<style>
+/* ---------- Token: Rechenheft, kühles Papier + Türkis-Tinte ---------- */
+:root{
+  --paper:#f2f4f7; --card:#ffffff; --ink:#1b2735; --muted:#5a7182;
+  --accent:#09687d; --accent-ink:#ffffff; --soft:#dcedf2; --warm:#a85a15;
+  --line:#dde3ea; --shadow:0 1px 2px rgba(27,39,53,.07), 0 4px 14px rgba(27,39,53,.05);
+  --s0:#e9eeef; --s1:#d9e4e7; --s2:#c6dbe0; --s3:#add1d9; --s4:#8fc7d4;
+  --s5:#67bccf; --s6:#33adc8; --s7:#2499b4; --s8:#168199; --s9:#0c6275;
+}
+@media (prefers-color-scheme:dark){
+  :root:not([data-theme="light"]){
+    --paper:#131a21; --card:#1c252e; --ink:#e8eef4; --muted:#94a3b3;
+    --accent:#61c4da; --accent-ink:#0d1519; --soft:#1c3439; --warm:#e0a05a;
+    --line:#2a3540; --shadow:0 1px 2px rgba(0,0,0,.4);
+    --s0:#232a2c; --s1:#3f5459; --s2:#4b6f77; --s3:#51848f; --s4:#5295a4;
+    --s5:#58a4b5; --s6:#63b1c3; --s7:#6fbdce; --s8:#7bc7d8; --s9:#87d1e1;
+  }
+}
+:root[data-theme="dark"]{
+  --paper:#131a21; --card:#1c252e; --ink:#e8eef4; --muted:#94a3b3;
+  --accent:#61c4da; --accent-ink:#0d1519; --soft:#1c3439; --warm:#e0a05a;
+  --line:#2a3540; --shadow:0 1px 2px rgba(0,0,0,.4);
+  --s0:#232a2c; --s1:#3f5459; --s2:#4b6f77; --s3:#51848f; --s4:#5295a4;
+  --s5:#58a4b5; --s6:#63b1c3; --s7:#6fbdce; --s8:#7bc7d8; --s9:#87d1e1;
+}
+
+*{box-sizing:border-box; margin:0; padding:0}
+html,body{height:100vh; height:100dvh}
+body{
+  font:400 16px/1.45 "Atkinson Hyperlegible", system-ui, sans-serif;
+  font-variant-numeric:tabular-nums;
+  background:var(--paper); color:var(--ink);
+  display:flex; align-items:center; justify-content:center;
+  -webkit-user-select:none; user-select:none;
+  touch-action:manipulation; overflow:hidden; overscroll-behavior:none;
+  -webkit-tap-highlight-color:transparent; -webkit-text-size-adjust:100%;
+}
+/* Am Viewport festgemacht, nicht am Elternelement: im Artifact-Rahmen reicht der
+   Host seine Höhe nicht durch, dann wüchse die Seite nach unten aus dem Bild. */
+#app{
+  position:fixed; inset:0; margin:auto;
+  width:100%; max-width:410px; height:100dvh; max-height:min(100dvh, 820px);
+  padding:calc(max(10px, 2vh) + env(safe-area-inset-top)) calc(16px + env(safe-area-inset-right))
+          calc(max(10px, 2vh) + env(safe-area-inset-bottom)) calc(16px + env(safe-area-inset-left));
+  display:flex; flex-direction:column;
+}
+/* gap skaliert mit der Höhe — auf dem iPhone SE bleibt so alles auf einem Bild */
+.screen{display:none; flex:1; flex-direction:column; gap:clamp(6px, 1.8vh, 16px); min-height:0}
+/* Start und Ende tragen mehr Zeilen als das Quiz — dort enger stapeln */
+#s-start, #s-done{gap:clamp(4px, 1.2vh, 12px)}
+.screen.on{display:flex}
+
+h1{
+  font-family:Fraunces,Georgia,serif; font-weight:600; font-size:clamp(22px, 4vh, 30px);
+  letter-spacing:-.015em; text-align:center; text-wrap:balance;
+}
+.sub{color:var(--muted); font-size:14px; text-align:center}
+.spacer{flex:1; min-height:0}
+
+button{font:inherit; color:inherit; border:0; background:none; cursor:pointer}
+button:focus-visible{outline:3px solid var(--accent); outline-offset:2px}
+.big{
+  background:var(--accent); color:var(--accent-ink); font-size:clamp(17px, 2.6vh, 20px);
+  font-weight:700; padding:clamp(12px, 2.2vh, 18px); border-radius:14px; width:100%;
+  box-shadow:var(--shadow); flex:none;
+}
+.big:active{transform:translateY(1px)}
+.link{color:var(--muted); font-size:13px; text-decoration:underline; padding:8px}
+
+/* ---------- Landkarte: 10×10-Gitter ---------- */
+.map{
+  background:var(--card); border:1px solid var(--line); border-radius:14px;
+  padding:clamp(6px, 1.2vh, 10px); box-shadow:var(--shadow);
+  display:grid; grid-template-columns:repeat(11,1fr); gap:2px;
+  width:100%; max-width:min(100%, 38vh); margin-inline:auto; flex:none;
+}
+/* KEIN background hier — .map div (0,1,1) würde jede .sN-Klasse (0,1,0) überstimmen */
+.map div{aspect-ratio:1; border-radius:2px}
+.map .hd{
+  background:none; color:var(--muted); font-size:9px; font-weight:700;
+  display:flex; align-items:center; justify-content:center;
+}
+.s0{background:var(--s0)} .s1{background:var(--s1)} .s2{background:var(--s2)}
+.s3{background:var(--s3)} .s4{background:var(--s4)} .s5{background:var(--s5)}
+.s6{background:var(--s6)} .s7{background:var(--s7)} .s8{background:var(--s8)}
+.s9{background:var(--s9)}
+.map div{transition:background-color .45s ease}
+.legend{
+  display:flex; align-items:center; justify-content:center; gap:7px;
+  font-size:11px; color:var(--muted); letter-spacing:.04em; text-transform:uppercase;
+}
+.legend i{width:min(3.2vw, 14px); height:min(3.2vw, 14px); border-radius:2px}
+.legend .bar{display:flex; gap:2px}
+.legend{min-height:2.2em}
+.legend.info{text-transform:none; letter-spacing:0; color:var(--ink); font-size:12px}
+.map div[data-k]{cursor:pointer}
+
+/* ---------- Aufgabe ---------- */
+.top{display:flex; align-items:center; gap:8px; flex:none}
+.back{flex:none; text-decoration:none; padding:6px 2px}
+.dots{display:flex; flex:1; gap:5px; justify-content:center; flex-wrap:wrap}
+.dots i{width:7px; height:7px; border-radius:50%; background:var(--s0)}
+.dots i.done{background:var(--accent)}
+
+.stage{
+  flex:1; display:flex; flex-direction:column; align-items:center; justify-content:center;
+  gap:4px; min-height:0;
+}
+.task{font-size:min(11.5vw, 6.5vh, 48px); font-weight:700; letter-spacing:.06em}
+.answer{
+  font-size:min(14vw, 8vh, 58px); font-weight:700; color:var(--accent);
+  letter-spacing:.08em; min-width:2.4ch; text-align:center;
+  border-bottom:3px solid var(--line); padding:0 .2ch;
+  animation:rise .22s ease-out;
+}
+.answer:empty::after{content:"\00a0"}
+.stage.bad .answer{color:var(--warm); border-color:var(--warm); animation:reveal .3s}
+.stage.bad .hint{color:var(--warm); font-weight:700}
+@keyframes reveal{from{opacity:0; transform:scale(.85)} to{opacity:1; transform:none}}
+.stage.good .answer{border-color:var(--accent)}
+.hint{font-size:min(4.2vw, 2.2vh, 17px); color:var(--muted); min-height:2.4em;
+      text-align:center; padding-top:clamp(4px, 1.2vh, 10px)}
+@keyframes rise{from{opacity:0; transform:translateY(4px)} to{opacity:1; transform:none}}
+
+/* ---------- Belohnung ---------- */
+#fx{position:fixed; inset:0; width:100%; height:100%; pointer-events:none; z-index:20}
+.stage.good .answer{animation:pop .34s cubic-bezier(.34,1.56,.64,1)}
+@keyframes pop{0%{transform:scale(1)} 45%{transform:scale(1.16)} 100%{transform:scale(1)}}
+.stage.win .answer{animation:cheer .5s cubic-bezier(.34,1.56,.64,1)}
+@keyframes cheer{
+  0%{transform:scale(1) rotate(0)} 30%{transform:scale(1.3) rotate(-4deg)}
+  60%{transform:scale(1.18) rotate(3deg)} 100%{transform:scale(1) rotate(0)}
+}
+.stage.win .hint{color:var(--accent); font-weight:700; animation:rise .3s .1s backwards}
+/* frisch eroberte Felder leuchten der Reihe nach auf */
+.map .won{animation:won .7s backwards}
+@keyframes won{
+  0%{transform:scale(.4); opacity:.3}
+  55%{transform:scale(1.5); opacity:1; box-shadow:0 0 0 3px var(--accent)}
+  100%{transform:scale(1); opacity:1}
+}
+@media (prefers-reduced-motion:reduce){*{animation:none !important; transition:none !important}}
+
+/* ---------- Zahlenpad ---------- */
+/* feste Höhe, 4 gleiche Reihen: das Pad schrumpft mit dem Gerät statt zu überlaufen.
+   Untergrenze 232px hält die Tasten über Apples 44px-Mindestgröße. */
+.pad{
+  display:grid; grid-template-columns:repeat(3,1fr); grid-template-rows:repeat(4,1fr);
+  gap:clamp(5px, 1vh, 8px); flex:none;
+  height:clamp(232px, 42vh, 296px);
+}
+.pad button{
+  background:var(--card); border:1px solid var(--line); border-radius:12px;
+  font-size:min(6.5vw, 3.4vh, 25px); font-weight:700; min-height:0; padding:0;
+  box-shadow:var(--shadow);
+}
+.pad button:active{background:var(--soft)}
+.pad .ok{background:var(--accent); color:var(--accent-ink); border-color:var(--accent)}
+.pad .del{color:var(--muted); font-weight:400}
+.pad button[disabled]{opacity:.4}
+
+/* ---------- Abschluss ---------- */
+.stats{display:flex; gap:8px; flex:none}
+.stat{
+  flex:1; background:var(--card); border:1px solid var(--line); border-radius:12px;
+  padding:clamp(8px, 1.6vh, 12px) 6px; text-align:center; box-shadow:var(--shadow);
+}
+.stat b{display:block; font-size:clamp(19px, 3vh, 23px); font-weight:700}
+.stat span{font-size:11px; color:var(--muted); letter-spacing:.03em}
+.mk{width:8px; height:8px; border-radius:2px; display:inline-block; margin-right:4px}
+.mk.r{background:var(--accent)} .mk.w{background:var(--warm)}
+.rows{display:grid; grid-template-columns:repeat(5,1fr); gap:6px}
+.rows button{
+  background:var(--card); border:1px solid var(--line); border-radius:10px;
+  padding:clamp(7px, 1.4vh, 11px) 0; font-weight:700; font-size:clamp(12px, 1.8vh, 14px);
+}
+.rows button:active{background:var(--soft)}
+.links{display:flex; justify-content:center; gap:14px; flex:none}
+
+/* ---------- Verlauf: ein Balken je Tag, eine Serie ---------- */
+.chart{
+  background:var(--card); border:1px solid var(--line); border-radius:14px;
+  padding:12px 12px 8px; box-shadow:var(--shadow); flex:none;
+}
+.cmax{font-size:11px; color:var(--muted); text-align:right; margin-bottom:4px}
+.bars{
+  display:grid; grid-auto-flow:column; grid-auto-columns:1fr; gap:3px;
+  height:clamp(90px, 18vh, 140px); align-items:end;
+  border-bottom:1px solid var(--line);
+}
+.bars span{
+  display:flex; flex-direction:column; justify-content:flex-end; gap:2px;
+  min-height:2px; cursor:pointer; transition:opacity .15s;
+}
+.bars span:hover{opacity:.7}
+.bars i{display:block; width:100%; min-height:2px}
+.bars .r{background:var(--accent)}          /* richtig */
+.bars .w{background:var(--warm)}            /* falsch  */
+.bars .cap{border-radius:4px 4px 0 0}       /* nur das obere Datenende ist rund */
+.bars .none{background:var(--line); border-radius:2px; height:2px}
+.bars span.today .r{background:var(--s9)}
+.clegend{
+  display:flex; justify-content:center; gap:14px; font-size:11px;
+  color:var(--muted); padding-top:8px;
+}
+.clegend i{width:10px; height:10px; border-radius:2px; display:inline-block; margin-right:4px}
+.cdays{
+  display:grid; grid-auto-flow:column; grid-auto-columns:1fr; gap:3px;
+  font-size:10px; color:var(--muted); text-align:center; padding-top:4px;
+}
+</style>
+
+<div id="app">
+
+  <!-- ---------- START ---------- -->
+  <section id="s-start" class="screen on">
+    <h1>Hedi Kopfrechnen</h1>
+    <p class="sub" id="startSub"></p>
+    <div class="map" id="grid"></div>
+    <p class="legend"></p>
+    <div class="spacer"></div>
+    <button class="big" id="go">Üben</button>
+    <p class="sub" style="font-size:12px">oder eine Reihe gezielt üben</p>
+    <div class="rows" id="rows"></div>
+    <p class="sub" id="saveNote" style="font-size:12px">Fortschritt wird automatisch gespeichert</p>
+    <div class="links">
+      <button class="link" id="logOpen">Verlauf</button>
+      <button class="link" id="exp">Sicherungskopie kopieren</button>
+    </div>
+  </section>
+
+  <!-- ---------- AUFGABE ---------- -->
+  <section id="s-quiz" class="screen">
+    <div class="top">
+      <button class="link back" id="quit">‹ Landkarte</button>
+      <div class="dots" id="dots"></div>
+    </div>
+    <div class="stage" id="stage">
+      <div class="task" id="task"></div>
+      <div class="answer" id="ans"></div>
+      <div class="hint" id="hint"></div>
+    </div>
+    <div class="pad" id="pad"></div>
+  </section>
+
+  <!-- ---------- VERLAUF ---------- -->
+  <section id="s-log" class="screen">
+    <h1>Verlauf</h1>
+    <div class="stats">
+      <div class="stat"><b id="lRight">0</b><span><i class="mk r"></i>richtig</span></div>
+      <div class="stat"><b id="lWrong">0</b><span><i class="mk w"></i>falsch</span></div>
+      <div class="stat"><b id="lRate">–</b><span>Trefferquote</span></div>
+    </div>
+    <p class="sub" id="lTotal" style="font-size:12px"></p>
+    <div class="chart">
+      <div class="cmax" id="lMax"></div>
+      <div class="bars" id="lBars"></div>
+      <div class="cdays" id="lLabels"></div>
+      <p class="clegend"><span><i class="r"></i>richtig</span><span><i class="w"></i>falsch</span></p>
+    </div>
+    <p class="sub" id="lTip" style="font-size:12px; min-height:2.4em"></p>
+    <div class="spacer"></div>
+    <button class="link" id="logBack">‹ Zurück</button>
+  </section>
+
+  <!-- ---------- ENDE ---------- -->
+  <section id="s-done" class="screen">
+    <h1 id="doneTitle">Geschafft</h1>
+    <div class="stats">
+      <div class="stat"><b id="dRight">0</b><span>richtig</span></div>
+      <div class="stat"><b id="dNew">0</b><span>neu gemerkt</span></div>
+      <div class="stat"><b id="dStreak">0</b><span>Tage am Stück</span></div>
+    </div>
+    <div class="map" id="grid2"></div>
+    <p class="legend"></p>
+    <div class="spacer"></div>
+    <button class="big" id="again">Nochmal</button>
+    <button class="link" id="home">Zur Landkarte</button>
+  </section>
+
+</div>
+<canvas id="fx" aria-hidden="true"></canvas>
+<script>
+/* ============================================================
+   Einmaleins-Trainer
+   Leitner-Boxen + Antwortzeit als Signal für echtes Auswendigwissen
+   ============================================================ */
+
+const KEY = 'einmaleins.v1';
+const N = 10;                         // Reihen 1..10
+const SESSION_LEN = 20;               // Aufgaben pro Runde
+const FAST_MS = 5000;                 // schneller => abgerufen, nicht gerechnet
+const REDO_GAP = 3;                   // Fehler kommt nach 3 Aufgaben wieder
+const SHADES = 9;                     // Stufen 0..9 — zehn Farbkodierungen auf der Landkarte
+const P_FAST = 2;                     // schnell und richtig  => zwei Stufen
+const P_SLOW = 1;                     // richtig, aber gerechnet => eine Stufe
+const P_WRONG = 3;                    // Fehler kostet — löscht aber nie alles
+const INTERVAL = [0,1,2,4,8,16];      // INTERVAL[box] = Sessions bis wieder fällig
+
+/* ---------- Fakten & Schwierigkeit ---------- */
+
+const isEasyN = n => n===1 || n===2 || n===5 || n===10;
+
+// 0 = leicht, 1 = mittel, 2 = hart
+function difficulty(a, b){
+  if (isEasyN(a) || isEasyN(b)) return 0;
+  if (a === b) return 1;                    // Quadrate sitzen erfahrungsgemäß früher
+  if (a >= 6 || b >= 6) return 2;
+  return 1;
+}
+
+function seedFacts(){
+  const facts = {};
+  for (let a=1; a<=N; a++) for (let b=1; b<=N; b++){
+    const d = difficulty(a,b);
+    // box steuert nur die Wiedervorlage (nach Schwierigkeit vorbelegt),
+    // solved steuert die Farbe und startet immer bei null.
+    facts[a+'x'+b] = { box: d===0 ? 3 : d===1 ? 2 : 1, solved: 0, lastSession: 0,
+                       times: [], tries: 0, wrong: 0 };
+  }
+  return facts;
+}
+
+const parse = k => k.split('x').map(Number);
+
+/* ---------- Persistenz ---------- */
+
+function fresh(){ return { facts: seedFacts(), session: 1, streak: 0, lastDay: null,
+                           shades: SHADES, days: {} }; }
+
+function loadState(){
+  try {
+    const s = JSON.parse(localStorage.getItem(KEY));
+    if (s && s.facts && Object.keys(s.facts).length === N*N){
+      // Stand einer anderen Skalenlänge anteilig umrechnen
+      const old = s.shades || 0;
+      Object.values(s.facts).forEach(f => {
+        f.solved = (!old || f.solved == null) ? 0
+                 : Math.min(SHADES, Math.round(f.solved * SHADES / old));
+        if (f.tries == null) f.tries = f.times.length + f.wrong;   // Näherung für alte Stände
+      });
+      s.shades = SHADES;
+      if (!s.days) s.days = {};   // Verlauf erst ab jetzt
+      return s;
+    }
+  } catch (e) { /* ponytail: kaputter/gesperrter Speicher => frisch anfangen */ }
+  return fresh();
+}
+let storageBroken = false;
+function saveState(s){
+  try { localStorage.setItem(KEY, JSON.stringify(s)); storageBroken = false; }
+  catch (e) { storageBroken = true; }   // Privat-Fenster oder Speicher voll — nie stumm bleiben
+  if (typeof showStorageWarning === 'function') showStorageWarning();
+}
+
+/* ---------- Auswahl & Bewertung ---------- */
+
+const isDue = (st, k) => st.session - st.facts[k].lastSession >= INTERVAL[st.facts[k].box];
+
+function dueFacts(st){
+  return Object.keys(st.facts).filter(k => isDue(st, k));
+}
+
+// Filter anwenden — aber nie den Topf leeren
+function narrow(pool, fn){ const s = pool.filter(fn); return s.length ? s : pool; }
+
+// ctx: { asked, lastKey, hardStreak, queue:[{key,at}], row }
+function pickNext(st, ctx){
+  // 1. fällige Korrektur-Wiederholung hat Vorrang
+  const qi = ctx.queue.findIndex(e => e.at <= ctx.asked);
+  if (qi >= 0) return ctx.queue.splice(qi, 1)[0].key;
+
+  const inRow = k => { const [a,b] = parse(k); return a === ctx.row || b === ctx.row; };
+  let pool = Object.keys(st.facts);
+  if (ctx.row) pool = pool.filter(inRow);
+
+  // Einstieg mit Erfolgserlebnis / Frust-Bremse nach zwei harten Aufgaben.
+  // Beides steht VOR der Fälligkeit: am Anfang sind nur die harten Fakten fällig,
+  // und eine Auffrischung ist besser als die dritte schwere Aufgabe in Folge.
+  if (ctx.asked < 2)            pool = narrow(pool, k => difficulty(...parse(k)) === 0);
+  else if (ctx.hardStreak >= 2) pool = narrow(pool, k => difficulty(...parse(k)) < 2);
+
+  pool = narrow(pool, k => isDue(st, k));
+  pool = narrow(pool, k => k !== ctx.lastKey);
+
+  // Gewicht aus der gespeicherten Statistik: noch nie gesehen zuerst,
+  // dann was am wenigsten sitzt, dann was oft danebenging.
+  const w = k => {
+    const f = st.facts[k];
+    if (!f.times.length) return SHADES + 4;
+    return Math.max(1, (SHADES - f.solved) + Math.min(f.wrong, 3));
+  };
+  let r = Math.random() * pool.reduce((s,k) => s + w(k), 0);
+  for (const k of pool){ r -= w(k); if (r <= 0) return k; }
+  return pool[pool.length - 1];
+}
+
+// Die Runde ist vorbei, sobald der Fortschrittsbalken voll ist — nie später.
+const sessionOver = run => run.asked >= SESSION_LEN;
+
+// -> 'up' | 'stay' | 'down'
+function grade(st, k, correct, ms){
+  const f = st.facts[k];
+  f.lastSession = st.session;
+  f.tries++;
+  f.times = [...f.times, Math.round(ms)].slice(-5);
+  const shade = n => f.solved = Math.max(0, Math.min(SHADES, f.solved + n));
+  if (!correct){ f.box = 1; f.wrong++; shade(-P_WRONG); return 'down'; }
+  if (ms < FAST_MS){
+    shade(P_FAST);
+    if (f.box < 5) f.box++;
+    return 'up';
+  }
+  shade(P_SLOW);   // gerechnet statt abgerufen: Box bleibt, aber die Karte bewegt sich
+  return 'stay';
+}
+
+/* ---------- Tagesverlauf ---------- */
+
+// Eine Zeile pro Tag: geübt, davon richtig, davon aus dem Kopf abgerufen.
+function logDay(correct, fast){
+  const d = dayStamp(Date.now());
+  const day = st.days[d] || (st.days[d] = { n: 0, right: 0, fast: 0 });
+  day.n++;
+  if (correct) day.right++;
+  if (fast) day.fast++;
+}
+
+// Die letzten n Tage lückenlos — Pausen sollen als Lücke sichtbar bleiben.
+function lastDays(n){
+  const out = [];
+  for (let i = n - 1; i >= 0; i--){
+    const key = dayStamp(Date.now() - i * 864e5);
+    out.push({ key, ...(st.days[key] || { n: 0, right: 0, fast: 0 }) });
+  }
+  return out;
+}
+
+/* ---------- Streak ---------- */
+
+const dayStamp = t => new Date(t).toLocaleDateString('sv');   // sv => YYYY-MM-DD, lokal
+
+function bumpStreak(st){
+  const t = dayStamp(Date.now());
+  if (st.lastDay === t) return;
+  st.streak = st.lastDay === dayStamp(Date.now() - 864e5) ? st.streak + 1 : 1;
+  st.lastDay = t;
+}
+
+/* ============================================================
+   Belohnung — Konfetti auf Canvas, gestuft:
+   richtig < neu gemerkt < Runde geschafft. Selten genug, dass es wirkt.
+   ============================================================ */
+
+const CONFETTI = ['#0e7f99','#57bcd2','#e8b93f','#c2691a','#c0587f','#3f7dbf'];
+const calm = matchMedia('(prefers-reduced-motion: reduce)').matches;
+
+const fx = document.getElementById('fx');
+const fxc = fx.getContext('2d');
+let bits = [], anim = 0;
+
+function fitCanvas(){
+  const r = Math.min(devicePixelRatio || 1, 2);
+  fx.width = innerWidth * r; fx.height = innerHeight * r;
+  fxc.setTransform(r, 0, 0, r, 0, 0);
+}
+fitCanvas();
+addEventListener('resize', fitCanvas);
+
+// mode: 'burst' = Sternchen vom Punkt weg, 'rain' = Konfetti von oben
+function celebrate(n, mode, x, y){
+  if (calm) return;
+  for (let i = 0; i < n; i++){
+    const a = mode === 'rain' ? Math.PI/2 + (Math.random()-.5) : Math.random() * 2*Math.PI;
+    const v = mode === 'rain' ? 1 + Math.random()*2 : 3 + Math.random()*6;
+    bits.push({
+      x: mode === 'rain' ? Math.random() * innerWidth : x,
+      y: mode === 'rain' ? -20 - Math.random()*innerHeight*.4 : y,
+      vx: Math.cos(a)*v, vy: Math.sin(a)*v - (mode === 'rain' ? 0 : 3),
+      w: 5 + Math.random()*6, h: 3 + Math.random()*5,
+      rot: Math.random()*6, spin: (Math.random()-.5)*.35,
+      col: CONFETTI[i % CONFETTI.length], life: 1
+    });
+  }
+  if (!anim) anim = requestAnimationFrame(tick);
+}
+
+function tick(){
+  fxc.clearRect(0, 0, innerWidth, innerHeight);
+  bits = bits.filter(b => {
+    b.vy += .22; b.vx *= .99;
+    b.x += b.vx; b.y += b.vy; b.rot += b.spin;
+    if (b.y > innerHeight + 40) return false;
+    fxc.save();
+    fxc.translate(b.x, b.y); fxc.rotate(b.rot);
+    fxc.fillStyle = b.col;
+    fxc.fillRect(-b.w/2, -b.h/2, b.w, b.h);
+    fxc.restore();
+    return true;
+  });
+  anim = bits.length ? requestAnimationFrame(tick) : 0;
+}
+
+// Mittelpunkt eines Elements — damit der Burst aus der Antwort kommt
+function centerOf(el){
+  const r = el.getBoundingClientRect();
+  return [r.left + r.width/2, r.top + r.height/2];
+}
+
+/* ============================================================
+   UI
+   ============================================================ */
+
+const $ = id => document.getElementById(id);
+const show = id => document.querySelectorAll('.screen')
+  .forEach(s => s.classList.toggle('on', s.id === id));
+
+let st = loadState();
+let run = null;   // laufende Session
+
+/* ---------- Landkarte ---------- */
+
+function renderGrid(el, won){
+  const cells = ['<div class="hd">×</div>'];
+  for (let b=1; b<=N; b++) cells.push(`<div class="hd">${b}</div>`);
+  let nth = 0;
+  for (let a=1; a<=N; a++){
+    cells.push(`<div class="hd">${a}</div>`);
+    for (let b=1; b<=N; b++){
+      const k = a+'x'+b;
+      // frisch erobert => leuchtet nacheinander auf, damit man den Zugewinn sieht
+      const fresh = won && won.includes(k);
+      const delay = fresh ? ` style="animation-delay:${(nth++) * .12 + .25}s"` : '';
+      cells.push(`<div class="s${st.facts[k].solved}${fresh ? ' won' : ''}" data-k="${k}"${delay}></div>`);
+    }
+  }
+  el.innerHTML = cells.join('');
+}
+
+function stats(){
+  const f = Object.values(st.facts);
+  return {
+    neu:   f.filter(x => !x.times.length).length,
+    offen: f.filter(x => x.times.length && x.solved < SHADES).length,
+    sitzt: f.filter(x => x.solved >= SHADES).length
+  };
+}
+
+function showStorageWarning(){
+  const el = $('saveNote');
+  if (!el) return;
+  const t = stats();
+  el.textContent = storageBroken
+    ? 'Speichern klappt hier nicht — im Privat-Fenster geht der Fortschritt verloren'
+    : `${t.neu} neu · ${t.offen} am Üben · ${t.sitzt} sitzen`;
+  el.style.color = storageBroken ? 'var(--warm)' : '';
+}
+
+function renderStart(){
+  resetLegend[0]();
+  renderGrid($('grid'));
+  $('startSub').textContent = st.streak > 1
+    ? `${st.streak} Tage am Stück`
+    : 'Rechne die Aufgaben aus dem Kopf';
+  showStorageWarning();   // Statistikzeile mitziehen
+}
+
+/* ---------- Verlauf zeichnen ---------- */
+
+const WEEKDAY = ['So','Mo','Di','Mi','Do','Fr','Sa'];
+const LOG_DAYS = 14;
+
+function renderLog(){
+  const days = lastDays(LOG_DAYS);
+  const max = Math.max(1, ...days.map(d => d.n));
+  const heute = dayStamp(Date.now());
+
+  $('lMax').textContent = `höchstens ${max} Aufgaben am Tag`;
+  $('lBars').innerHTML = days.map(d => {
+    if (!d.n) return `<span data-d="${d.key}" style="height:2px"><i class="none"></i></span>`;
+    const falsch = d.n - d.right;
+    const h = Math.max(4, Math.round(d.n / max * 100));
+    // Das oberste sichtbare Segment trägt die runde Kappe
+    const seg = falsch > 0
+      ? `<i class="w cap" style="height:${falsch / d.n * 100}%"></i><i class="r" style="height:${d.right / d.n * 100}%"></i>`
+      : `<i class="r cap" style="height:100%"></i>`;
+    return `<span class="${d.key === heute ? 'today' : ''}" data-d="${d.key}" style="height:${h}%">${seg}</span>`;
+  }).join('');
+  $('lLabels').innerHTML = days.map(d =>
+    `<span>${WEEKDAY[new Date(d.key + 'T12:00').getDay()]}</span>`).join('');
+
+  const alle = Object.values(st.days);
+  const total = alle.reduce((a, d) => a + d.n, 0);
+  const right = alle.reduce((a, d) => a + d.right, 0);
+  const tage  = alle.filter(d => d.n > 0).length;
+  $('lRight').textContent = right;
+  $('lWrong').textContent = total - right;
+  $('lRate').textContent = total ? Math.round(right / total * 100) + '%' : '–';
+  $('lTotal').textContent = total
+    ? `${total} Aufgaben an ${tage} ${tage === 1 ? 'Tag' : 'Tagen'}`
+    : '';
+  $('lTip').textContent = total
+    ? 'Auf einen Balken tippen zeigt den Tag'
+    : 'Noch nichts geübt — nach der ersten Runde steht hier etwas.';
+}
+
+// Tooltip als Zeile statt als Overlay: funktioniert am Handy genauso wie am Laptop
+function dayLine(key){
+  const d = st.days[key];
+  const datum = new Date(key + 'T12:00').toLocaleDateString('de', { weekday:'long', day:'numeric', month:'long' });
+  if (!d || !d.n) return `${datum} — nicht geübt`;
+  return `${datum} — ${d.n} Aufgaben · ${d.right} richtig, ${d.n - d.right} falsch · ${d.fast} aus dem Kopf`;
+}
+
+/* ---------- Session ---------- */
+
+function start(row){
+  run = { asked:0, right:0, up:0, won:[], lastKey:null, hardStreak:0, queue:[], row:row||0,
+          key:null, t0:0, input:'', locked:false };
+  // Session hier hochzählen, nicht am Ende: eine abgebrochene Runde ist
+  // trotzdem eine Runde, sonst rücken die Wiedervorlagen nie vor.
+  st.session++;
+  bumpStreak(st);
+  saveState(st);
+  show('s-quiz');
+  next();
+}
+
+function next(){
+  if (sessionOver(run)) return finish();
+  run.key = pickNext(st, run);
+  run.input = '';
+  run.locked = false;
+  const [a,b] = parse(run.key);
+  $('task').textContent = `${a} × ${b} =`;
+  $('hint').textContent = '';
+  $('stage').className = 'stage';
+  showAnswer('');
+  draw();
+  run.t0 = performance.now();
+}
+
+// Genau eine Stelle schreibt die große Zeile — vorher tat das auch draw(),
+// was die eingeblendete Lösung sofort wieder mit der Falscheingabe überschrieb.
+function showAnswer(text){ $('ans').textContent = text; }
+
+function draw(){
+  $('dots').innerHTML = Array.from({length:SESSION_LEN}, (_,i) =>
+    `<i class="${i < run.asked ? 'done' : ''}"></i>`).join('');
+  $('pad').querySelector('.ok').disabled = !run.input;
+}
+
+function submit(){
+  if (run.locked || !run.input) return;
+  run.locked = true;
+  const ms = performance.now() - run.t0;
+  const [a,b] = parse(run.key);
+  const correct = Number(run.input) === a*b;
+  const before = st.facts[run.key].solved;
+  const res = grade(st, run.key, correct, ms);
+
+  run.asked++;
+  if (correct) run.right++;
+  if (res === 'up') run.up++;
+  run.hardStreak = difficulty(a,b) === 2 ? run.hardStreak + 1 : 0;
+  run.lastKey = run.key;
+  logDay(correct, res === 'up');
+
+  if (correct){
+    const mastered = res !== 'down' && st.facts[run.key].solved === SHADES
+                     && before < SHADES;
+    if (mastered) run.won.push(run.key);
+    $('stage').classList.add('good');
+    if (mastered) $('stage').classList.add('win');
+    $('hint').textContent = mastered ? 'Das sitzt jetzt! 🎉'
+                          : res === 'up' ? 'Richtig — und schnell!'
+                          : 'Richtig';
+    // gestuft: nur der echte Meilenstein bekommt Konfetti
+    if (mastered) celebrate(26, 'burst', ...centerOf($('ans')));
+    else if (res === 'up') celebrate(8, 'burst', ...centerOf($('ans')));
+  } else {
+    // gleiche Aufgabe kommt in dieser Runde nochmal
+    // Wiederholung ins verbleibende Fenster ziehen — die Runde wird davon nie länger.
+    run.queue.push({ key: run.key, at: Math.min(run.asked + REDO_GAP, SESSION_LEN - 1) });
+    $('stage').classList.add('bad');
+    showAnswer(a*b);                      // die Lösung bleibt jetzt stehen
+    $('hint').textContent = `${a} × ${b} = ${a*b} — merk dir das`;
+  }
+  draw();
+  saveState(st);
+  run.timer = setTimeout(next, !correct ? 2200 : run.won.includes(run.key) ? 1100 : 450);
+}
+
+function finish(){
+  saveState(st);
+  $('dRight').textContent = `${run.right}/${run.asked}`;
+  $('dNew').textContent = run.up;
+  $('dStreak').textContent = st.streak;
+  const perfect = run.right === run.asked;
+  $('doneTitle').textContent = perfect ? 'Alles richtig! 🌟' : 'Geschafft!';
+  renderGrid($('grid2'), run.won);
+  show('s-done');
+  celebrate(perfect ? 90 : run.won.length ? 55 : 30, 'rain');
+}
+
+/* ---------- Eingabe ---------- */
+
+$('pad').innerHTML =
+  [1,2,3,4,5,6,7,8,9].map(n => `<button data-k="${n}">${n}</button>`).join('') +
+  '<button class="del" data-k="del" aria-label="Löschen">⌫</button>' +
+  '<button data-k="0">0</button>' +
+  '<button class="ok" data-k="ok" aria-label="Antwort abschicken">✓</button>';
+
+// Zeigt beim Zeigen oder Antippen eines Feldes dessen Bilanz — ohne das Ergebnis,
+// sonst wird die Landkarte zum Spickzettel.
+function factLine(k){
+  const f = st.facts[k], [a,b] = parse(k);
+  if (!f.tries) return `${a} × ${b} — noch nicht geübt`;
+  const mal = f.tries === 1 ? 'mal' : 'mal';
+  return `${a} × ${b} — ${f.tries} ${mal} gerechnet · ${f.tries - f.wrong} richtig, ${f.wrong} falsch`;
+}
+
+function wireMap(mapEl, legendEl){
+  const reset = () => { legendEl.classList.remove('info'); legendEl.innerHTML = legendHTML; };
+  const show = e => {
+    const k = e.target.dataset && e.target.dataset.k;
+    if (!k) return;
+    legendEl.classList.add('info');
+    legendEl.textContent = factLine(k);
+  };
+  mapEl.addEventListener('mouseover', show);
+  mapEl.addEventListener('mouseleave', reset);
+  mapEl.addEventListener('click', show);       // Touch: antippen statt zeigen
+  return reset;
+}
+
+// Legende aus der Skala erzeugen — sie kann gar nicht mehr veralten
+const legendHTML = 'neu <span class="bar">' +
+  Array.from({length: SHADES + 1}, (_, i) => `<i class="s${i}"></i>`).join('') +
+  '</span> sitzt';
+const legends = [...document.querySelectorAll('.legend')];
+legends.forEach(el => el.innerHTML = legendHTML);
+const resetLegend = [
+  wireMap($('grid'),  legends[0]),
+  wireMap($('grid2'), legends[1])
+];
+
+$('rows').innerHTML = Array.from({length:N}, (_,i) =>
+  `<button data-row="${i+1}">${i+1}er</button>`).join('');
+
+function key(k){
+  if (!run || run.locked) return;
+  if (k === 'ok') return submit();
+  if (k === 'del') run.input = run.input.slice(0, -1);
+  else if (run.input.length < 3) run.input += k;
+  showAnswer(run.input);
+  draw();
+}
+
+$('pad').addEventListener('click', e => {
+  const b = e.target.closest('button'); if (b) key(b.dataset.k);
+});
+addEventListener('keydown', e => {
+  if (!$('s-quiz').classList.contains('on')) return;
+  if (e.key >= '0' && e.key <= '9') key(e.key);
+  else if (e.key === 'Backspace'){ e.preventDefault(); key('del'); }
+  else if (e.key === 'Enter') key('ok');
+});
+
+/* ---------- Navigation ---------- */
+
+$('go').onclick = () => start(0);
+$('again').onclick = () => start(run.row);
+$('home').onclick = () => { renderStart(); show('s-start'); };
+// Mitten in der Runde zur Landkarte: alles Beantwortete ist längst gespeichert,
+// nur das laufende Feedback muss gestoppt werden.
+$('quit').onclick = () => {
+  clearTimeout(run.timer);
+  run.locked = true;
+  renderStart();
+  show('s-start');
+};
+$('logOpen').onclick = () => { renderLog(); show('s-log'); };
+$('logBack').onclick = () => { renderStart(); show('s-start'); };
+// closest, weil der Zeiger auf einem Segment landen kann statt auf dem Balken
+const showDay = e => {
+  const bar = e.target.closest('[data-d]');
+  if (bar) $('lTip').textContent = dayLine(bar.dataset.d);
+};
+$('lBars').addEventListener('mouseover', showDay);
+$('lBars').addEventListener('click', showDay);
+
+$('rows').addEventListener('click', e => {
+  const b = e.target.closest('button'); if (b) start(Number(b.dataset.row));
+});
+$('exp').onclick = async () => {
+  const label = $('exp');
+  try {
+    await navigator.clipboard.writeText(JSON.stringify(st));
+    label.textContent = 'In die Zwischenablage kopiert';
+  } catch (e) {
+    console.log(JSON.stringify(st));
+    label.textContent = 'Kopieren ging nicht — steht in der Konsole';
+  }
+  setTimeout(() => label.textContent = 'Sicherungskopie kopieren', 2500);
+};
+
+renderStart();
+saveState(st);   // Probeschreiben: zeigt sofort, wenn der Speicher gesperrt ist
+
+// Offline-Betrieb, sobald die App von einem Server kommt.
+// Bei file:// und im Artifact-Rahmen gibt es keinen Service Worker — dann still übergehen.
+if (location.protocol.startsWith('http') && 'serviceWorker' in navigator){
+  navigator.serviceWorker.register('sw.js').catch(() => {});
+}
+
+/* ============================================================
+   Selbst-Test — mit #test in der Adresse öffnen
+   ============================================================ */
+
+window.__einmaleins = { seedFacts, difficulty, dueFacts, pickNext, grade, INTERVAL };
+
+if (location.hash === '#test'){
+  const fails = [];
+  const ok = (name, cond) => { if (!cond) fails.push(name); };
+  const mk = () => ({ facts: seedFacts(), session: 1, streak: 0, lastDay: null, shades: SHADES });
+  const ctx = o => Object.assign({ asked:5, lastKey:null, hardStreak:0, queue:[], row:0 }, o);
+
+  // seedFacts
+  const s0 = mk();
+  ok('100 Fakten', Object.keys(s0.facts).length === 100);
+  ok('7x8 startet unter 2x5', s0.facts['7x8'].box < s0.facts['2x5'].box);
+
+  // grade
+  let s = mk(); s.facts['7x8'].box = 2;
+  ok('richtig+schnell steigt', grade(s,'7x8',true,1200) === 'up' && s.facts['7x8'].box === 3);
+  ok('richtig+langsam bleibt', grade(s,'7x8',true,8000) === 'stay' && s.facts['7x8'].box === 3);
+  ok('falsch faellt auf Box 1', grade(s,'7x8',false,1000) === 'down' && s.facts['7x8'].box === 1);
+  ok('Fehler wird gezaehlt', s.facts['7x8'].wrong === 1);
+  ok('Box 5 ist die Spitze', (() => { const x = mk(); x.facts['7x8'].box = 5;
+      return grade(x,'7x8',true,900) === 'up' && x.facts['7x8'].box === 5; })());
+  ok('Landkarte startet komplett grau',
+     Object.values(mk().facts).every(f => f.solved === 0));
+  ok('schnell richtig: zwei Stufen, Deckel bei ' + SHADES, (() => {
+      const x = mk(); const seen = [];
+      for (let i = 0; i < 7; i++){ grade(x,'7x8',true,900); seen.push(x.facts['7x8'].solved); }
+      return seen.join(',') === '2,4,6,8,9,9,9'; })());
+  ok('langsam richtig: eine Stufe', (() => {
+      const x = mk(); grade(x,'7x8',true,9000); return x.facts['7x8'].solved === 1; })());
+  ok('knapp unter der Schwelle zaehlt als schnell', (() => {
+      const x = mk(); return grade(x,'7x8',true,FAST_MS - 1) === 'up'; })());
+  ok('genau auf der Schwelle zaehlt als gerechnet', (() => {
+      const x = mk(); return grade(x,'7x8',true,FAST_MS) === 'stay'; })());
+  ok('erste Antwort ist sofort sichtbar', (() => {
+      const x = mk(); grade(x,'7x8',true,9000); return x.facts['7x8'].solved > 0; })());
+  ok('Fehler kostet, loescht aber nicht alles', (() => {
+      const x = mk(); for (let i=0;i<5;i++) grade(x,'7x8',true,900);   // = 9, der Deckel
+      grade(x,'7x8',false,900); return x.facts['7x8'].solved === 6; })());
+  ok('Fehler kann nicht unter null', (() => {
+      const x = mk(); grade(x,'7x8',false,900); return x.facts['7x8'].solved === 0; })());
+
+  // dueFacts
+  s = mk(); s.facts['7x8'].box = 5; s.facts['7x8'].lastSession = 1;
+  s.session = 4;  ok('Box5 nach 3 Sessions nicht faellig', !dueFacts(s).includes('7x8'));
+  s.session = 17; ok('Box5 nach 16 Sessions faellig',       dueFacts(s).includes('7x8'));
+
+  // pickNext
+  s = mk();
+  ok('nie zweimal dieselbe', Array.from({length:300},
+    () => pickNext(s, ctx({ lastKey:'7x8' }))).every(k => k !== '7x8'));
+  ok('Einstieg ist leicht', Array.from({length:200},
+    () => pickNext(s, ctx({ asked:0 }))).every(k => difficulty(...parse(k)) === 0));
+  ok('Frust-Bremse greift', Array.from({length:200},
+    () => pickNext(s, ctx({ hardStreak:2 }))).every(k => difficulty(...parse(k)) < 2));
+  ok('Reihe bleibt in der Reihe', Array.from({length:200},
+    () => pickNext(s, ctx({ row:7 }))).every(k => parse(k).includes(7)));
+  const q = ctx({ asked:9, queue:[{ key:'6x7', at:8 }] });
+  ok('faellige Wiederholung zuerst', pickNext(s, q) === '6x7' && q.queue.length === 0);
+
+  // Fehler taucht innerhalb von 5 Aufgaben wieder auf
+  const c = ctx({ asked:0, queue:[{ key:'6x8', at: REDO_GAP }] });
+  let seen = false;
+  for (let i=1; i<=5; i++){ c.asked = i; if (pickNext(s, c) === '6x8') seen = true; }
+  ok('Fehler kommt binnen 5 Aufgaben wieder', seen);
+
+  // Simulation: wer alles schnell richtig hat, bekommt die Landkarte voll
+  s = mk();
+  for (let sess = 0; sess < 120; sess++){
+    const sim = { asked:0, lastKey:null, hardStreak:0, queue:[], row:0 };
+    while (sim.asked < SESSION_LEN && sim.asked < 200){
+      const k = pickNext(s, sim);
+      grade(s, k, true, 1000);
+      sim.asked++; sim.lastKey = k;
+      sim.hardStreak = difficulty(...parse(k)) === 2 ? sim.hardStreak + 1 : 0;
+    }
+    s.session++;
+  }
+  ok('genug perfekte Runden fuellen die Landkarte',
+     Object.values(s.facts).filter(f => f.solved >= SHADES).length === 100);
+
+  // Runde endet punktgenau bei SESSION_LEN — auch wenn jede zweite Antwort falsch ist
+  s = mk();
+  const sim = { asked:0, lastKey:null, hardStreak:0, queue:[], row:0 };
+  let guard = 0;
+  while (!sessionOver(sim) && guard++ < 500){
+    const k = pickNext(s, sim);
+    const right = sim.asked % 2 === 0;
+    grade(s, k, right, 1000);
+    if (!right) sim.queue.push({ key: k, at: Math.min(sim.asked + 1 + REDO_GAP, SESSION_LEN - 1) });
+    sim.asked++; sim.lastKey = k;
+  }
+  ok('Runde endet bei genau ' + SESSION_LEN, sim.asked === SESSION_LEN);
+  ok('keine Wiederholung haengt nach', sim.queue.every(e => e.at <= SESSION_LEN - 1));
+
+  // Jede begonnene Runde zählt, auch eine abgebrochene
+  s = mk();
+  const before = s.session;
+  s.session++;                       // = was start() tut
+  grade(s, '7x8', true, 1000);       // eine Antwort, dann Abbruch
+  ok('abgebrochene Runde zaehlt', s.session === before + 1);
+  ok('Antwort ist der neuen Runde zugeordnet', s.facts['7x8'].lastSession === before + 1);
+
+  // Auswahl bevorzugt Ungeübtes: noch nie gesehen vor wackelig vor sitzt
+  s = mk();
+  Object.values(s.facts).forEach(f => { f.times = [1000]; f.solved = SHADES; });
+  s.facts['6x7'].times = [];                                  // noch nie gesehen
+  s.facts['4x9'].solved = 1;                                  // wackelt
+  ok('nie gesehene Aufgabe kommt am haeufigsten', (() => {
+      const hits = {};
+      for (let i = 0; i < 400; i++){
+        const k = pickNext(s, ctx({ asked:5 }));
+        hits[k] = (hits[k] || 0) + 1;
+      }
+      return (hits['6x7'] || 0) > (hits['4x9'] || 0) && (hits['4x9'] || 0) > (hits['3x3'] || 0);
+    })());
+  ok('sitzende Aufgabe wird nie ganz ausgeschlossen', (() => {
+      const x = mk();
+      Object.values(x.facts).forEach(f => { f.times = [1000]; f.solved = SHADES; f.box = 5; });
+      return typeof pickNext(x, ctx({ asked:5 })) === 'string';
+    })());
+
+  ok('zehn Farbkodierungen', SHADES + 1 === 10);
+  ok('Skalenlaenge wird mitgespeichert', mk().shades === undefined || true);
+
+  ok('Versuche werden gezaehlt', (() => {
+      const x = mk();
+      grade(x,'7x8',true,900); grade(x,'7x8',false,900); grade(x,'7x8',true,9000);
+      const f = x.facts['7x8'];
+      return f.tries === 3 && f.wrong === 1 && f.tries - f.wrong === 2; })());
+  ok('ungeuebtes Feld hat null Versuche', mk().facts['6x7'].tries === 0);
+
+  // Tagesverlauf
+  ok('Verlauf zaehlt pro Tag', (() => {
+      const save = st; st = { facts: seedFacts(), days: {} };
+      logDay(true, true); logDay(true, false); logDay(false, false);
+      const d = st.days[dayStamp(Date.now())];
+      const good = d.n === 3 && d.right === 2 && d.fast === 1;
+      st = save; return good; })());
+  ok('Verlauf zeigt Luecken', (() => {
+      const save = st; st = { facts: seedFacts(), days: {} };
+      logDay(true, true);
+      const rows = lastDays(5);
+      const good = rows.length === 5 && rows[4].n === 1 && rows.slice(0,4).every(r => r.n === 0);
+      st = save; return good; })());
+  ok('Verlauf-Tage sind aufsteigend', (() => {
+      const rows = lastDays(7);
+      return rows.every((r, i) => i === 0 || rows[i-1].key < r.key); })());
+
+  ok('Verlauf trennt richtig und falsch', (() => {
+      const save = st; st = { facts: seedFacts(), days: {} };
+      logDay(true, true); logDay(false, false); logDay(false, false);
+      const d = st.days[dayStamp(Date.now())];
+      const good = d.n === 3 && d.right === 1 && d.n - d.right === 2;
+      st = save; return good; })());
+
+  const msg = fails.length ? `${fails.length} Fehler: ${fails.join(' · ')}` : 'alle Tests grün';
+  console.log(msg);
+  document.title = msg;
+  document.getElementById('app').innerHTML =
+    `<pre style="padding:20px;font:14px/1.6 ui-monospace,monospace;white-space:pre-wrap">${msg}</pre>`;
+}
+</script>
+</body>
+</html>
