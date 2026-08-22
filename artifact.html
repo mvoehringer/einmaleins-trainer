@@ -151,13 +151,13 @@ button:focus-visible{outline:3px solid var(--accent); outline-offset:2px}
    Die Größe ist so gewählt, dass auch die längste Zeile („100 : 10 = 10")
    in die 343px eines iPhone-Hochformats passt. */
 .eq{
-  display:flex; align-items:baseline; justify-content:center; gap:.22em;
+  display:flex; align-items:baseline; justify-content:center; gap:.26em;
   font-size:min(12vw, 6.5vh, 46px); font-weight:700; letter-spacing:.03em;
   width:100%;
 }
 .task{font-size:1em; white-space:nowrap}
 .answer{
-  font-size:1em; color:var(--accent); min-width:2.2ch; text-align:center;
+  font-size:1em; color:var(--accent); min-width:3.2ch; text-align:center;
   border-bottom:3px solid var(--line); padding:0 .12ch;
   animation:rise .22s ease-out;
 }
@@ -192,10 +192,14 @@ button:focus-visible{outline:3px solid var(--accent); outline-offset:2px}
 #fx{position:fixed; inset:0; width:100%; height:100%; pointer-events:none; z-index:20}
 .stage.good .answer{animation:pop .34s cubic-bezier(.34,1.56,.64,1)}
 @keyframes pop{0%{transform:scale(1)} 45%{transform:scale(1.16)} 100%{transform:scale(1)}}
-.stage.win .answer{animation:cheer .5s cubic-bezier(.34,1.56,.64,1)}
+.stage.win .answer{animation:cheer .55s cubic-bezier(.34,1.56,.64,1)}
+/* Hüpfen statt stark vergrößern: die Antwort steht jetzt neben dem
+   Gleichheitszeichen, viel Breitenzuwachs würde dort hineinlaufen. */
 @keyframes cheer{
-  0%{transform:scale(1) rotate(0)} 30%{transform:scale(1.3) rotate(-4deg)}
-  60%{transform:scale(1.18) rotate(3deg)} 100%{transform:scale(1) rotate(0)}
+  0%  {transform:translateY(0) scale(1) rotate(0)}
+  30% {transform:translateY(-16%) scale(1.1) rotate(-3deg)}
+  60% {transform:translateY(0) scale(1.04) rotate(2deg)}
+  100%{transform:translateY(0) scale(1) rotate(0)}
 }
 .stage.win .hint{color:var(--accent); font-weight:700; animation:rise .3s .1s backwards}
 /* frisch eroberte Felder leuchten der Reihe nach auf */
@@ -352,11 +356,11 @@ button:focus-visible{outline:3px solid var(--accent); outline-offset:2px}
       <div class="dots" id="dots"></div>
     </div>
     <div class="stage" id="stage">
-      <div class="eq">
+      <div class="eq" aria-live="polite" aria-atomic="true">
         <span class="task" id="task"></span>
         <span class="answer" id="ans"></span>
       </div>
-      <div class="hint" id="hint"></div>
+      <div class="hint" id="hint" aria-live="polite"></div>
       <div class="tip" id="tip" hidden></div>
     </div>
     <div class="pad" id="pad"></div>
@@ -1073,7 +1077,7 @@ function submit(){
                      at: Math.min(run.asked + REDO_GAP, SESSION_LEN - 1) });
     $('stage').classList.add('bad');
     showAnswer(run.task.answer);          // die Lösung steht jetzt in der Zeile
-    $('hint').textContent = 'So kommst du drauf:';
+    $('hint').textContent = `Du hattest ${run.input} — richtig ist ${run.task.answer}`;
     zeigeWeg();
   }
   draw();
