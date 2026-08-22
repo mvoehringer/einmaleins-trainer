@@ -188,25 +188,6 @@ button:focus-visible{outline:3px solid var(--accent); outline-offset:2px}
 .hint{font-size:min(4.2vw, 2.2vh, 17px); color:var(--muted); min-height:2.4em;
       text-align:center; padding-top:clamp(4px, 1.2vh, 10px)}
 
-/* Rechenweg bei einem Fehler — bekommt den Platz des Zahlenpads */
-.tip{
-  background:var(--card); border:1px solid var(--line); border-radius:14px;
-  padding:clamp(10px, 2vh, 16px); box-shadow:var(--shadow); text-align:left;
-  width:100%; max-width:340px; margin:clamp(6px, 1.5vh, 14px) auto 0;
-  animation:rise .3s .1s backwards;
-}
-.tip h2{
-  font-size:clamp(12px, 1.8vh, 14px); font-weight:700; color:var(--warm);
-  text-transform:uppercase; letter-spacing:.05em; margin-bottom:6px;
-}
-.tip ol{list-style:none; display:flex; flex-direction:column; gap:clamp(3px, .9vh, 7px)}
-.tip li{
-  font-size:clamp(14px, 2.3vh, 18px); color:var(--ink); font-weight:700;
-  display:grid; grid-template-columns:auto 1fr; gap:8px; align-items:baseline;
-}
-.tip li span{color:var(--muted); font-weight:400; font-size:.75em}
-@keyframes rise{from{opacity:0; transform:translateY(4px)} to{opacity:1; transform:none}}
-
 /* ---------- Belohnung ---------- */
 #fx{position:fixed; inset:0; width:100%; height:100%; pointer-events:none; z-index:20}
 .stage.good .answer{animation:pop .34s cubic-bezier(.34,1.56,.64,1)}
@@ -380,7 +361,6 @@ button:focus-visible{outline:3px solid var(--accent); outline-offset:2px}
         <span class="answer" id="ans"></span>
       </div>
       <div class="hint" id="hint" aria-live="polite"></div>
-      <div class="tip" id="tip" hidden></div>
     </div>
     <div class="pad" id="pad"></div>
     <button class="big" id="gotIt" hidden>Verstanden</button>
@@ -542,133 +522,6 @@ function inRow(k, n){
   if (m === 'm') return body.split('x').map(Number).includes(n);
   if (m === 'd'){ const [p,b] = body.split('/').map(Number); return b === n || p/b === n; }
   return false;
-}
-
-/* ---------- Rechenwege ---------- */
-
-// Zu jeder Aufgabe ein Weg, wie man sie ableitet — nicht nur das Ergebnis.
-// Jeder Schritt nennt echte Zwischenzahlen, damit man ihn mitrechnen kann.
-// Rückgabe: { weg: 'Kurzname', schritte: ['…', '…'] }
-
-const verdopple = n => `${n} + ${n} = ${n*2}`;
-
-// Für a × b: den Faktor mit dem stärksten Trick als Anker nehmen.
-const MAL_TRICKS = {
-  1:  (a) => ({ weg:'Mal 1',        schritte:[`Mal 1 bleibt die Zahl: ${a}`] }),
-  10: (a) => ({ weg:'Mal 10',       schritte:[`Eine Null anhängen: ${a} → ${a*10}`] }),
-  2:  (a) => ({ weg:'Verdoppeln',   schritte:[verdopple(a)] }),
-  5:  (a) => ({ weg:'Halber Zehner',schritte:[`${a} · 10 = ${a*10}`, `davon die Hälfte: ${a*5}`] }),
-  9:  (a) => ({ weg:'Zehner minus', schritte:[`${a} · 10 = ${a*10}`, `minus ${a} → ${a*9}`] }),
-  4:  (a) => ({ weg:'Zweimal verdoppeln', schritte:[verdopple(a), verdopple(a*2)] }),
-  8:  (a) => ({ weg:'Dreimal verdoppeln', schritte:[verdopple(a), verdopple(a*2), verdopple(a*4)] }),
-  3:  (a) => ({ weg:'Verdoppeln und dazu', schritte:[verdopple(a), `plus ${a} → ${a*3}`] }),
-  6:  (a) => ({ weg:'Fünfer plus eins', schritte:[`${a} · 5 = ${a*5}`, `plus ${a} → ${a*6}`] }),
-  7:  (a) => ({ weg:'Fünfer plus Zweier', schritte:[`${a} · 5 = ${a*5}`, `${a} · 2 = ${a*2}`, `zusammen ${a*7}`] })
-};
-// Reihenfolge: welcher Faktor gibt den einfacheren Weg?
-const MAL_RANG = [1, 10, 2, 5, 9, 4, 3, 6, 8, 7];
-
-function hintMal(a, b){
-  const anker = MAL_RANG.find(n => n === a || n === b);
-  const rest = anker === a ? b : a;          // die Zahl, die verrechnet wird
-  return MAL_TRICKS[anker](rest);
-}
-
-function hintFor(k, task){
-  const m = modeOf(k), body = bodyOf(k);
-
-  if (m === 'm') return hintMal(...body.split('x').map(Number));
-
-  if (m === 'd'){
-    const [p, b] = body.split('/').map(Number), a = p / b;
-    return { weg:'Rückwärts denken',
-             schritte:[`Was mal ${b} ergibt ${p}?`, `${a} · ${b} = ${p}`, `also ${p} : ${b} = ${a}`] };
-  }
-
-  // Plus und Minus: aus dem Aufgabentext die beiden Zahlen zurückholen
-  const [x, , y] = task.text.split(' ');
-  const links = +x, rechts = +y;
-  const zehner = n => Math.floor(n / 10) * 10;
-
-  if (m === 'p'){
-    const g = links, kl = rechts;
-    const voll = 10 - (g % 10);            // so viel fehlt bis zum nächsten Zehner
-
-    if (g % 10 === 0 && kl % 10 === 0)
-      return { weg:'Nur die Zehner',
-               schritte:[`${g/10} + ${kl/10} = ${(g+kl)/10}`, `also ${g+kl}`] };
-
-    if (kl % 10 === 0)
-      return { weg:'Erst die Zehner',
-               schritte:[`${zehner(g)} + ${kl} = ${zehner(g)+kl}`, `die ${g%10} wieder dazu → ${g+kl}`] };
-
-    if (kl < 10){
-      // Einstellig und unter zehn: es gibt keine Zehner zum Zerlegen — weiterzählen
-      if (g + kl < 10){
-        const [gr, kn] = [Math.max(g,kl), Math.min(g,kl)];
-        const kette = Array.from({length: kn}, (_, i) => gr + i + 1).join(', ');
-        return { weg:'Weiterzählen', schritte:[`Von ${gr} aus ${kn} weiter: ${kette}`] };
-      }
-      if (g < 10 && g + kl === 10)
-        return { weg:'Zehnerfreunde', schritte:[`${g} und ${kl} ergeben zusammen 10`] };
-      if (g % 10 === 0)
-        return { weg:'Einer anhängen', schritte:[`${g} ist glatt, ${kl} kommt hinten dran → ${g+kl}`] };
-      if (voll === kl)
-        return { weg:'Genau bis zum Zehner', schritte:[`${g%10} + ${kl} = 10`, `der Zehner wird voll → ${g+kl}`] };
-      if ((g % 10) + kl < 10)
-        return { weg:'Nur die Einer',
-                 schritte:[`${g%10} + ${kl} = ${g%10 + kl}`, `die Zehner bleiben → ${g+kl}`] };
-      return { weg:'Erst zum vollen Zehner',
-               schritte:[`${g} + ${voll} = ${g+voll}`, `noch ${kl-voll} dazu`, `= ${g+kl}`] };
-    }
-
-    // beide zweistellig
-    if ((g % 10) + (kl % 10) > 9)
-      return { weg:'Erst die Zehner, dann die Einer',
-               schritte:[`${g} + ${zehner(kl)} = ${g+zehner(kl)}`,
-                         `${g+zehner(kl)} + ${kl%10} = ${g+kl}`] };
-    return { weg:'Zehner und Einer getrennt',
-             schritte:[`Zehner: ${zehner(g)} + ${zehner(kl)} = ${zehner(g)+zehner(kl)}`,
-                       `Einer: ${g%10} + ${kl%10} = ${g%10 + kl%10}`, `zusammen ${g+kl}`] };
-  }
-
-  // Minus
-  const min = links, sub = rechts;
-
-  if (min % 10 === 0 && sub % 10 === 0)
-    return { weg:'Nur die Zehner',
-             schritte:[`${min/10} − ${sub/10} = ${(min-sub)/10}`, `also ${min-sub}`] };
-
-  if (sub % 10 === 0)
-    return { weg:'Erst die Zehner',
-             schritte:[`${zehner(min)} − ${sub} = ${zehner(min)-sub}`, `die ${min%10} wieder dazu → ${min-sub}`] };
-
-  if (sub < 10){
-    // Unter zehn: Minus als Ergänzung denken, das ist der tragfähigere Weg
-    if (min <= 10)
-      return { weg:'Ergänzen',
-               schritte:[`${sub} + wie viel ergibt ${min}?`, `${sub} + ${min-sub} = ${min}`,
-                         `also bleibt ${min-sub}`] };
-    if (min % 10 === 0)
-      return { weg:'Einen Zehner aufbrechen',
-               schritte:[`${min} = ${min-10} und 10`, `10 − ${sub} = ${10-sub}`, `also ${min-sub}`] };
-    if (min % 10 === sub)
-      return { weg:'Genau bis zum Zehner', schritte:[`${min%10} − ${sub} = 0`, `übrig bleibt ${min-sub}`] };
-    if (min % 10 > sub)
-      return { weg:'Nur die Einer',
-               schritte:[`${min%10} − ${sub} = ${min%10 - sub}`, `die Zehner bleiben → ${min-sub}`] };
-    return { weg:'Erst zum vollen Zehner',
-             schritte:[`${min} − ${min%10} = ${zehner(min)}`, `noch ${sub - min%10} weg`, `= ${min-sub}`] };
-  }
-
-  // beide zweistellig
-  if ((min % 10) < (sub % 10))
-    return { weg:'Erst die Zehner, dann die Einer',
-             schritte:[`${min} − ${zehner(sub)} = ${min-zehner(sub)}`,
-                       `${min-zehner(sub)} − ${sub%10} = ${min-sub}`] };
-  return { weg:'Zehner und Einer getrennt',
-           schritte:[`Zehner: ${zehner(min)} − ${zehner(sub)} = ${zehner(min)-zehner(sub)}`,
-                     `Einer: ${min%10} − ${sub%10} = ${min%10 - sub%10}`, `zusammen ${min-sub}`] };
 }
 
 /* ---------- Persistenz ---------- */
@@ -1046,7 +899,7 @@ function next(){
   $('task').textContent = run.task.text + ' =';
   $('hint').textContent = '';
   $('stage').className = 'stage';
-  versteckeWeg();
+  zurueckZumPad();
   showAnswer('');
   draw();
   run.t0 = performance.now();
@@ -1097,7 +950,7 @@ function submit(){
     $('stage').classList.add('bad');
     showAnswer(run.task.answer);          // die Lösung steht jetzt in der Zeile
     $('hint').textContent = `Du hattest ${run.input} — richtig ist ${run.task.answer}`;
-    zeigeWeg();
+    warteAufBestaetigung();
   }
   draw();
   saveState(st);
@@ -1107,18 +960,14 @@ function submit(){
     run.timer = setTimeout(next, run.won.includes(run.key) ? 1100 : 450);
 }
 
-// Zeigt den Rechenweg und wartet auf „Verstanden" — solange bleibt alles stehen.
-function zeigeWeg(){
-  const h = hintFor(run.key, run.task);
-  $('tip').innerHTML = `<h2>${h.weg}</h2><ol>` +
-    h.schritte.map((z, i) => `<li><span>${i+1}</span>${z}</li>`).join('') + '</ol>';
-  $('tip').hidden = false;
+// Nach einem Fehler tritt das Zahlenpad zurück und macht „Verstanden" Platz —
+// die Lösung bleibt stehen, bis sie bestätigt wird.
+function warteAufBestaetigung(){
   $('pad').hidden = true;
   $('gotIt').hidden = false;
 }
 
-function versteckeWeg(){
-  $('tip').hidden = true;
+function zurueckZumPad(){
   $('pad').hidden = false;
   $('gotIt').hidden = true;
 }
@@ -1217,7 +1066,7 @@ $('home').onclick = () => { renderStart(); show('s-start'); };
 $('quit').onclick = () => {
   clearTimeout(run.timer);
   run.locked = true;
-  versteckeWeg();
+  zurueckZumPad();
   renderStart();
   show('s-start');
 };
@@ -1474,52 +1323,6 @@ if (location.hash === '#test'){
   ok('frische Reihe ist nicht gekonnt', (() => {
       const save = st; st = mk(); const r = rowState('m', 7); st = save;
       return !r.sitzt && r.schnitt === 0; })());
-
-  // --- Rechenwege ---
-  ok('jede Aufgabe hat einen Rechenweg', (() => {
-      for (const k of Object.keys(seedFacts())){
-        const runden = (modeOf(k) === 'p' || modeOf(k) === 's') ? 60 : 1;
-        for (let i = 0; i < runden; i++){
-          const t = makeTask(k);
-          const h = hintFor(k, t);
-          if (!h || !h.weg || !h.schritte || !h.schritte.length) return false;
-        }
-      }
-      return true; })());
-  ok('jeder Rechenweg endet auf dem Ergebnis', (() => {
-      for (const k of Object.keys(seedFacts())){
-        const runden = (modeOf(k) === 'p' || modeOf(k) === 's') ? 60 : 1;
-        for (let i = 0; i < runden; i++){
-          const t = makeTask(k);
-          const letzte = hintFor(k, t).schritte.at(-1).match(/-?\d+/g);
-          if (!letzte || +letzte.at(-1) !== t.answer) return false;
-        }
-      }
-      return true; })());
-  ok('jede Gleichung im Rechenweg stimmt', (() => {
-      for (const k of Object.keys(seedFacts())){
-        const runden = (modeOf(k) === 'p' || modeOf(k) === 's') ? 60 : 1;
-        for (let i = 0; i < runden; i++){
-          for (const z of hintFor(k, makeTask(k)).schritte)
-            for (const g of z.matchAll(/(-?\d+)\s*([+−·:])\s*(-?\d+)\s*=\s*(-?\d+)/g)){
-              const soll = g[2] === '+' ? +g[1] + +g[3] : g[2] === '·' ? +g[1] * +g[3]
-                         : g[2] === ':' ? +g[1] / +g[3] : +g[1] - +g[3];
-              if (soll !== +g[4]) return false;
-            }
-        }
-      }
-      return true; })());
-  ok('kein Rechenweg rechnet mit null', (() => {
-      for (const k of Object.keys(seedFacts())){
-        const runden = (modeOf(k) === 'p' || modeOf(k) === 's') ? 60 : 1;
-        for (let i = 0; i < runden; i++)
-          for (const z of hintFor(k, makeTask(k)).schritte)
-            if (/[+−] 0\b/.test(z) || /\bnoch 0\b/.test(z)) return false;
-      }
-      return true; })());
-  ok('7x8 wird verdoppelt', hintFor('m:7x8', makeTask('m:7x8')).weg === 'Dreimal verdoppeln');
-  ok('mal 9 geht ueber den Zehner', hintFor('m:6x9', makeTask('m:6x9')).weg === 'Zehner minus');
-  ok('Division denkt rueckwaerts', hintFor('d:56/7', makeTask('d:56/7')).weg === 'Rückwärts denken');
 
   const msg = fails.length ? `${fails.length} Fehler: ${fails.join(' · ')}` : 'alle Tests grün';
   console.log(msg);
