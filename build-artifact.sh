@@ -30,4 +30,5 @@ fi
 
 build > artifact.html
 [ "$(core index.html)" = "$(core artifact.html)" ] || { echo "Build fehlgeschlagen"; exit 1; }
+python3 pruefe-stufen.py > /dev/null || { python3 pruefe-stufen.py; exit 1; }
 echo "artifact.html erzeugt ✓ ($(wc -l < artifact.html | tr -d ' ') Zeilen)"
