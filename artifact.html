@@ -235,6 +235,9 @@ button:focus-visible{outline:3px solid var(--accent); outline-offset:2px}
 .pad .ok{background:var(--accent); color:var(--accent-ink); border-color:var(--accent)}
 .pad .del{color:var(--muted); font-weight:400}
 .pad button[disabled]{opacity:.4}
+/* Lösung steht: die Ziffern treten zurück, nur das Häkchen führt weiter */
+.pad.weiter button:not(.ok){opacity:.28; pointer-events:none}
+.pad.weiter .ok{font-size:min(4.6vw, 2.4vh, 18px); animation:rise .3s .1s backwards}
 
 /* ---------- Abschluss ---------- */
 .stats{display:flex; gap:8px; flex:none}
@@ -345,7 +348,6 @@ button:focus-visible{outline:3px solid var(--accent); outline-offset:2px}
       <div class="hint" id="hint" aria-live="polite"></div>
     </div>
     <div class="pad" id="pad"></div>
-    <button class="big" id="gotIt" hidden>Verstanden</button>
   </section>
 
   <!-- ---------- VERLAUF ---------- -->
@@ -942,16 +944,23 @@ function submit(){
     run.timer = setTimeout(next, run.won.includes(run.key) ? 1100 : 450);
 }
 
-// Nach einem Fehler tritt das Zahlenpad zurück und macht „Verstanden" Platz —
-// die Lösung bleibt stehen, bis sie bestätigt wird.
+// Nach einem Fehler bleibt das Zahlenpad stehen: die Ziffern werden still,
+// das Häkchen wird zur Weiter-Taste. So bleibt der Daumen, wo er ist.
+const okTaste = () => $('pad').querySelector('.ok');
+
 function warteAufBestaetigung(){
-  $('pad').hidden = true;
-  $('gotIt').hidden = false;
+  $('pad').classList.add('weiter');
+  const ok = okTaste();
+  ok.disabled = false;
+  ok.textContent = 'Weiter';
+  ok.setAttribute('aria-label', 'Weiter zur nächsten Aufgabe');
 }
 
 function zurueckZumPad(){
-  $('pad').hidden = false;
-  $('gotIt').hidden = true;
+  $('pad').classList.remove('weiter');
+  const ok = okTaste();
+  ok.textContent = '✓';
+  ok.setAttribute('aria-label', 'Antwort abschicken');
 }
 
 function finish(){
@@ -1015,7 +1024,11 @@ $('rows').innerHTML = Array.from({length:N}, (_,i) =>
   `<button data-row="${i+1}">${i+1}er</button>`).join('');
 
 function key(k){
-  if (!run || run.locked) return;
+  if (!run) return;
+  if (run.locked){                    // Lösung steht — nur das Häkchen führt weiter
+    if (k === 'ok') next();
+    return;
+  }
   if (k === 'ok') return submit();
   if (k === 'del') run.input = run.input.slice(0, -1);
   else if (run.input.length < 3) run.input += k;
@@ -1028,7 +1041,7 @@ $('pad').addEventListener('click', e => {
 });
 addEventListener('keydown', e => {
   if (!$('s-quiz').classList.contains('on')) return;
-  if (!$('gotIt').hidden){                     // Rechenweg steht: nur weiter
+  if (run && run.locked){                      // Lösung steht: nur weiter
     if (e.key === 'Enter' || e.key === ' '){ e.preventDefault(); next(); }
     return;
   }
@@ -1039,7 +1052,6 @@ addEventListener('keydown', e => {
 
 /* ---------- Navigation ---------- */
 
-$('gotIt').onclick = () => next();
 $('go').onclick = () => start(0);
 $('again').onclick = () => start(run.row);
 $('home').onclick = () => { renderStart(); show('s-start'); };
@@ -1305,6 +1317,29 @@ if (location.hash === '#test'){
   ok('frische Reihe ist nicht gekonnt', (() => {
       const save = st; st = mk(); const r = rowState('m', 7); st = save;
       return !r.sitzt && r.schnitt === 0; })());
+
+  // --- Wartezustand nach einem Fehler ---
+  ok('gesperrte Aufgabe nimmt keine Ziffern mehr an', (() => {
+      const save = run;
+      run = { locked:true, input:'54', asked:3, key:'m:7x8', task:makeTask('m:7x8'),
+              won:[], queue:[], mode:'m' };
+      key('7'); key('del');
+      const unveraendert = run.input === '54';
+      run = save; return unveraendert; })());
+  ok('offene Aufgabe nimmt Ziffern an', (() => {
+      const save = run;
+      run = { locked:false, input:'5', asked:3, key:'m:7x8', task:makeTask('m:7x8'),
+              won:[], queue:[], mode:'m' };
+      key('6');
+      const angekommen = run.input === '56';
+      run = save; return angekommen; })());
+  ok('hoechstens drei Ziffern', (() => {
+      const save = run;
+      run = { locked:false, input:'', asked:3, key:'m:7x8', task:makeTask('m:7x8'),
+              won:[], queue:[], mode:'m' };
+      '12345'.split('').forEach(key);
+      const gekappt = run.input === '123';
+      run = save; return gekappt; })());
 
   const msg = fails.length ? `${fails.length} Fehler: ${fails.join(' · ')}` : 'alle Tests grün';
   console.log(msg);
