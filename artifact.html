@@ -89,7 +89,7 @@ button:focus-visible{outline:3px solid var(--accent); outline-offset:2px}
    Bewusst leicht gehalten: sie wählen nur aus, sie sind nicht die Handlung.
    Das visuelle Gewicht gehört dem Üben-Button. */
 .tabs{
-  display:grid; grid-template-columns:repeat(4,1fr); flex:none;
+  display:grid; grid-template-columns:repeat(5,1fr); flex:none;
   border-bottom:1px solid var(--line);
 }
 .tabs button{
@@ -409,13 +409,16 @@ const INTERVAL = [0,1,2,4,8,16];      // INTERVAL[box] = Sessions bis wieder fä
 // Jede Rechenart hat einen eigenen Aufgabenraum, eigene Landkarte, eigenen Fortschritt.
 // Mal und Geteilt haben je 100 feste Aufgaben. Plus und Minus hätten tausende,
 // deshalb ist dort der "Fakt" ein Aufgabentyp und die Zahlen werden erzeugt.
-const MODES = ['m','d','p','s'];
+// 'x' ist das Tagesziel: kein eigener Aufgabenraum, sondern alle vier zusammen.
+const MODES = ['x','m','d','p','s'];
 const MODE = {
+  x: { label:'Alles',    sign:'',  grid:false },
   m: { label:'Mal',     sign:'×', grid:true  },
   d: { label:'Geteilt', sign:':', grid:true  },
   p: { label:'Plus',    sign:'+', grid:false },
   s: { label:'Minus',   sign:'−', grid:false }
 };
+const RECHENARTEN = ['m','d','p','s'];
 
 const isEasyN = n => n===1 || n===2 || n===5 || n===10;
 
@@ -478,7 +481,9 @@ function seedFacts(){
 
 const modeOf = k => k[0];
 const bodyOf = k => k.slice(2);
-const factsOf = (st, mode) => Object.keys(st.facts).filter(k => modeOf(k) === mode);
+const factsOf = (st, mode) => mode === 'x'
+  ? Object.keys(st.facts)
+  : Object.keys(st.facts).filter(k => modeOf(k) === mode);
 
 // Konkrete Aufgabe zu einem Fakt. Bei Plus/Minus sind die Zahlen jedes Mal andere,
 // deshalb hält die Runde das Ergebnis fest — sonst käme die Wiederholung
@@ -511,7 +516,7 @@ function inRow(k, n){
 /* ---------- Persistenz ---------- */
 
 function fresh(){ return { facts: seedFacts(), session: 1, streak: 0, lastDay: null,
-                           shades: SHADES, days: {}, mode: 'm' }; }
+                           shades: SHADES, days: {}, mode: 'x', sahGemischt: 1 }; }
 
 function loadState(){
   try {
@@ -526,6 +531,8 @@ function loadState(){
       const soll = seedFacts();
       for (const k in soll) if (!s.facts[k]) s.facts[k] = soll[k];
       if (!MODE[s.mode]) s.mode = 'm';
+      // Gemischt ist neu und soll das Tagesziel sein — einmalig auch für alte Stände
+      if (!s.sahGemischt){ s.mode = 'x'; s.sahGemischt = 1; }
       // Stand einer anderen Skalenlänge anteilig umrechnen
       const old = s.shades || 0;
       Object.values(s.facts).forEach(f => {
@@ -568,6 +575,12 @@ function pickNext(st, ctx){
   if (qi >= 0){ const e = ctx.queue.splice(qi, 1)[0]; return { key: e.key, task: e.task || makeTask(e.key) }; }
 
   let pool = factsOf(st, ctx.mode);
+  // Gemischt: erst die Rechenart würfeln. Sonst gingen Plus und Minus unter,
+  // die zusammen nur 16 der 216 Fakten stellen.
+  if (ctx.mode === 'x'){
+    const m = RECHENARTEN[Math.floor(Math.random() * RECHENARTEN.length)];
+    pool = pool.filter(k => modeOf(k) === m);
+  }
   if (ctx.row) pool = pool.filter(k => inRow(k, ctx.row));
 
   // Einstieg mit Erfolgserlebnis / Frust-Bremse nach zwei harten Aufgaben.
@@ -724,6 +737,19 @@ function renderGrid(el, won, mode){
   let nth = 0;
   const frisch = k => won && won.includes(k);
   const delay  = () => ` style="animation-delay:${(nth++) * .12 + .25}s"`;
+
+  // Gemischt hat keine eigene Landkarte — es zeigt, wie die vier Rechenarten stehen.
+  if (mode === 'x'){
+    el.className = 'steps';
+    el.innerHTML = RECHENARTEN.map(m => {
+      const f = factsOf(st, m).map(k => st.facts[k].solved);
+      const stufe = Math.round(f.reduce((a,v) => a+v, 0) / f.length);
+      const neu = won && won.some(k => modeOf(k) === m);
+      return `<div><span>${MODE[m].label}</span>` +
+             `<b class="s${stufe}${neu ? ' won' : ''}"${neu ? delay() : ''}></b></div>`;
+    }).join('');
+    return;
+  }
 
   if (!MODE[mode].grid){
     el.className = 'steps';
@@ -1273,6 +1299,11 @@ if (location.hash === '#test'){
   // --- Rechenarten ---
   ok('Reiter mischen sich nicht', Array.from({length:300},
      () => pickNext(mk(), ctx({ mode:'p' })).key).every(k => modeOf(k) === 'p'));
+  ok('Gemischt zieht aus allen vieren', (() => {
+      const gesehen = new Set(Array.from({length:400},
+        () => modeOf(pickNext(mk(), ctx({ mode:'x' })).key)));
+      return RECHENARTEN.every(m => gesehen.has(m)); })());
+  ok('Gemischt kennt jeden Fakt', factsOf(mk(), 'x').length === 216);
   ok('Division ist die Umkehrung', (() => {
       const t = makeTask('d:56/7'); return t.text === '56 : 7' && t.answer === 8; })());
   ok('Malaufgabe stimmt', (() => {
