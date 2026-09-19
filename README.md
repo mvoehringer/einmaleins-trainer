@@ -39,7 +39,7 @@ kommen drei Aufgaben später nochmal — innerhalb derselben Runde.
 
 ## Tests
 
-`index.html#test` im Browser öffnen: 38 Selbst-Tests laufen durch, das Ergebnis
+`index.html#test` im Browser öffnen: 69 Selbst-Tests laufen durch, das Ergebnis
 steht auf der Seite und in der Konsole. Kein Test-Runner, keine Installation.
 
 ## Fortschritt
