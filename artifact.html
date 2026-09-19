@@ -41,19 +41,20 @@ body{
    Host seine Höhe nicht durch, dann wüchse die Seite nach unten aus dem Bild. */
 #app{
   position:fixed; inset:0; margin:auto;
+  container:app / size;      /* alles darin misst sich an der App, nicht am Fenster */
   width:100%; max-width:410px; height:100dvh; max-height:min(100dvh, 820px);
   padding:calc(max(10px, 2vh) + env(safe-area-inset-top)) calc(16px + env(safe-area-inset-right))
           calc(max(10px, 2vh) + env(safe-area-inset-bottom)) calc(16px + env(safe-area-inset-left));
   display:flex; flex-direction:column;
 }
 /* gap skaliert mit der Höhe — auf dem iPhone SE bleibt so alles auf einem Bild */
-.screen{display:none; flex:1; flex-direction:column; gap:clamp(6px, 1.8vh, 16px); min-height:0}
+.screen{display:none; flex:1; flex-direction:column; gap:clamp(6px, 1.8cqh, 16px); min-height:0}
 /* Start und Ende tragen mehr Zeilen als das Quiz — dort enger stapeln */
-#s-start, #s-done{gap:clamp(4px, 1.2vh, 12px)}
+#s-start, #s-done{gap:clamp(4px, 1.2cqh, 12px)}
 .screen.on{display:flex}
 
 h1{
-  font-family:Fraunces,Georgia,serif; font-weight:600; font-size:clamp(22px, 4vh, 30px);
+  font-family:Fraunces,Georgia,serif; font-weight:600; font-size:clamp(22px, 4cqh, 30px);
   letter-spacing:-.015em; text-align:center; text-wrap:balance;
 }
 .sub{color:var(--muted); font-size:14px; text-align:center}
@@ -62,15 +63,15 @@ h1{
 button{font:inherit; color:inherit; border:0; background:none; cursor:pointer}
 button:focus-visible{outline:3px solid var(--accent); outline-offset:2px}
 .big{
-  background:var(--accent); color:var(--accent-ink); font-size:clamp(18px, 2.6vh, 21px);
-  font-weight:700; min-height:56px; padding:clamp(12px, 2.2vh, 18px);
+  background:var(--accent); color:var(--accent-ink); font-size:clamp(18px, 2.6cqh, 21px);
+  font-weight:700; min-height:56px; padding:clamp(12px, 2.2cqh, 18px);
   border-radius:14px; width:100%; box-shadow:var(--shadow); flex:none;
 }
 .big:active{transform:translateY(1px)}
 /* Der Weg nach vorn: eigener Luftraum über und unter dem Knopf, damit er nicht
    als eine Zeile unter vielen gelesen wird. Alles andere daneben ist Option. */
 #go{
-  margin:clamp(10px, 2.6vh, 26px) 0 clamp(8px, 1.8vh, 16px);
+  margin:clamp(10px, 2.6cqh, 26px) 0 clamp(8px, 1.8cqh, 16px);
   box-shadow:0 2px 4px rgba(9,104,125,.22), 0 8px 20px rgba(9,104,125,.16);
   letter-spacing:.01em;
 }
@@ -93,7 +94,7 @@ button:focus-visible{outline:3px solid var(--accent); outline-offset:2px}
   border-bottom:1px solid var(--line);
 }
 .tabs button{
-  min-height:44px; font-weight:700; font-size:clamp(13px, 1.9vh, 15px);
+  min-height:44px; font-weight:700; font-size:clamp(13px, 1.9cqh, 15px);
   color:var(--muted); position:relative; padding:0 2px;
   border-bottom:3px solid transparent; margin-bottom:-1px;
   transition:color .15s;
@@ -106,9 +107,9 @@ button:focus-visible{outline:3px solid var(--accent); outline-offset:2px}
 /* ---------- Landkarte: 10×10-Gitter ---------- */
 .map{
   background:var(--card); border:1px solid var(--line); border-radius:14px;
-  padding:clamp(6px, 1.2vh, 10px); box-shadow:var(--shadow);
+  padding:clamp(6px, 1.2cqh, 10px); box-shadow:var(--shadow);
   display:grid; grid-template-columns:repeat(11,1fr); gap:2px;
-  width:100%; max-width:min(100%, 31vh); margin-inline:auto; flex:none;
+  width:100%; max-width:min(100%, 31cqh); margin-inline:auto; flex:none;
 }
 /* KEIN background hier — .map div (0,1,1) würde jede .sN-Klasse (0,1,0) überstimmen */
 .map div{aspect-ratio:1; border-radius:2px}
@@ -125,7 +126,7 @@ button:focus-visible{outline:3px solid var(--accent); outline-offset:2px}
   display:flex; align-items:center; justify-content:center; gap:7px;
   font-size:11px; color:var(--muted); letter-spacing:.04em; text-transform:uppercase;
 }
-.legend i{width:min(3.2vw, 14px); height:min(3.2vw, 14px); border-radius:2px}
+.legend i{width:min(3.2cqw, 14px); height:min(3.2cqw, 14px); border-radius:2px}
 .legend .bar{display:flex; gap:2px}
 .legend{min-height:2.2em}
 .legend.info{text-transform:none; letter-spacing:0; color:var(--ink); font-size:12px}
@@ -152,7 +153,7 @@ button:focus-visible{outline:3px solid var(--accent); outline-offset:2px}
    in die 343px eines iPhone-Hochformats passt. */
 .eq{
   display:flex; align-items:baseline; justify-content:center; gap:.26em;
-  font-size:min(12vw, 6.5vh, 46px); font-weight:700; letter-spacing:.03em;
+  font-size:min(12cqw, 6.5cqh, 46px); font-weight:700; letter-spacing:.03em;
   width:100%;
 }
 .task{font-size:1em; white-space:nowrap}
@@ -166,8 +167,8 @@ button:focus-visible{outline:3px solid var(--accent); outline-offset:2px}
 .stage.bad .hint{color:var(--warm); font-weight:700}
 @keyframes reveal{from{opacity:0; transform:scale(.85)} to{opacity:1; transform:none}}
 .stage.good .answer{border-color:var(--accent)}
-.hint{font-size:min(4.2vw, 2.2vh, 17px); color:var(--muted); min-height:2.4em;
-      text-align:center; padding-top:clamp(4px, 1.2vh, 10px)}
+.hint{font-size:min(4.2cqw, 2.2cqh, 17px); color:var(--muted); min-height:2.4em;
+      text-align:center; padding-top:clamp(4px, 1.2cqh, 10px)}
 
 /* ---------- Belohnung ---------- */
 #fx{position:fixed; inset:0; width:100%; height:100%; pointer-events:none; z-index:20}
@@ -194,26 +195,26 @@ button:focus-visible{outline:3px solid var(--accent); outline-offset:2px}
 
 /* Wenig Höhe (Safari mit Adressleiste, kleine Geräte): Bedienelemente behalten
    ihre 44px, dafür schrumpfen Landkarte, Titel und Beiwerk. */
-@media (max-height: 700px){
-  .map{max-width:min(100%, 27vh)}
+@container app (max-height: 700px){
+  .map{max-width:min(100%, 27cqh)}
   .legend{min-height:1.6em; font-size:10px}
-  h1{font-size:clamp(20px, 3.4vh, 26px)}
+  h1{font-size:clamp(20px, 3.4cqh, 26px)}
 }
-@media (max-height: 620px){
-  #go{margin:clamp(8px, 1.4vh, 14px) 0 clamp(6px, 1vh, 10px)}
+@container app (max-height: 620px){
+  #go{margin:clamp(8px, 1.4cqh, 14px) 0 clamp(6px, 1cqh, 10px)}
 }
-@media (max-height: 600px){
+@container app (max-height: 600px){
   .legend{display:none}
-  .map{max-width:min(100%, 23vh)}
+  .map{max-width:min(100%, 23cqh)}
 }
 /* Ganz wenig Höhe: die Reihen-Auswahl weicht, „Üben" genügt */
-@media (max-height: 500px){
+@container app (max-height: 500px){
   .rows{display:none !important}
   .steps{gap:2px}
   .steps div{font-size:10px; padding:1px 4px}
   .steps b{height:9px}
 }
-@media (max-height: 460px){
+@container app (max-height: 460px){
   #saveNote{display:none}
   #go{margin:6px 0 4px}
 }
@@ -223,12 +224,12 @@ button:focus-visible{outline:3px solid var(--accent); outline-offset:2px}
    Untergrenze 232px hält die Tasten über Apples 44px-Mindestgröße. */
 .pad{
   display:grid; grid-template-columns:repeat(3,1fr); grid-template-rows:repeat(4,1fr);
-  gap:clamp(5px, 1vh, 8px); flex:none;
-  height:clamp(232px, 42vh, 296px);
+  gap:clamp(5px, 1cqh, 8px); flex:none;
+  height:clamp(232px, 42cqh, 296px);
 }
 .pad button{
   background:var(--card); border:1px solid var(--line); border-radius:12px;
-  font-size:min(6.5vw, 3.4vh, 25px); font-weight:700; min-height:0; padding:0;
+  font-size:min(6.5cqw, 3.4cqh, 25px); font-weight:700; min-height:0; padding:0;
   box-shadow:var(--shadow);
 }
 .pad button:active{background:var(--soft)}
@@ -237,22 +238,22 @@ button:focus-visible{outline:3px solid var(--accent); outline-offset:2px}
 .pad button[disabled]{opacity:.4}
 /* Lösung steht: die Ziffern treten zurück, nur das Häkchen führt weiter */
 .pad.weiter button:not(.ok){opacity:.28; pointer-events:none}
-.pad.weiter .ok{font-size:min(4.6vw, 2.4vh, 18px); animation:rise .3s .1s backwards}
+.pad.weiter .ok{font-size:min(4.6cqw, 2.4cqh, 18px); animation:rise .3s .1s backwards}
 
 /* ---------- Abschluss ---------- */
 .stats{display:flex; gap:8px; flex:none}
 .stat{
   flex:1; background:var(--card); border:1px solid var(--line); border-radius:12px;
-  padding:clamp(8px, 1.6vh, 12px) 6px; text-align:center; box-shadow:var(--shadow);
+  padding:clamp(8px, 1.6cqh, 12px) 6px; text-align:center; box-shadow:var(--shadow);
 }
-.stat b{display:block; font-size:clamp(19px, 3vh, 23px); font-weight:700}
+.stat b{display:block; font-size:clamp(19px, 3cqh, 23px); font-weight:700}
 .stat span{font-size:11px; color:var(--muted); letter-spacing:.03em}
 .mk{width:8px; height:8px; border-radius:2px; display:inline-block; margin-right:4px}
 .mk.r{background:var(--accent)} .mk.w{background:var(--warm)}
 .rows{display:grid; grid-template-columns:repeat(5,1fr); gap:7px; flex:none}
 .rows button{
   background:none; border:1px solid var(--line); border-radius:10px;
-  min-height:46px; padding:0 0 5px; font-weight:600; font-size:clamp(13px, 1.9vh, 15px);
+  min-height:46px; padding:0 0 5px; font-weight:600; font-size:clamp(13px, 1.9cqh, 15px);
   color:var(--muted); position:relative; overflow:hidden;
 }
 .rows button:active{background:var(--soft)}
@@ -267,19 +268,19 @@ button:focus-visible{outline:3px solid var(--accent); outline-offset:2px}
 /* ---------- Plus und Minus: Typen statt Einzelaufgaben ---------- */
 .steps{
   background:var(--card); border:1px solid var(--line); border-radius:14px;
-  padding:clamp(6px, 1.2vh, 10px); box-shadow:var(--shadow); flex:none;
-  display:flex; flex-direction:column; gap:clamp(3px, .7vh, 6px);
+  padding:clamp(6px, 1.2cqh, 10px); box-shadow:var(--shadow); flex:none;
+  display:flex; flex-direction:column; gap:clamp(3px, .7cqh, 6px);
 }
 .steps div{
   display:grid; grid-template-columns:1fr auto; align-items:center; gap:8px;
-  font-size:clamp(11px, 1.7vh, 13px); cursor:pointer;
-  padding:clamp(2px, .5vh, 5px) 4px; border-radius:6px;
+  font-size:clamp(11px, 1.7cqh, 13px); cursor:pointer;
+  padding:clamp(2px, .5cqh, 5px) 4px; border-radius:6px;
 }
 .steps div:hover{background:var(--soft)}
 /* KEIN background hier — .steps b (0,1,1) würde jede .sN-Klasse (0,1,0) überstimmen,
    genau wie es .map div einmal tat. Die Stufenfarbe kommt allein aus der Klasse. */
 .steps b{
-  display:block; width:clamp(56px, 22vw, 84px); height:11px; border-radius:3px;
+  display:block; width:clamp(56px, 22cqw, 84px); height:11px; border-radius:3px;
 }
 .links{display:flex; justify-content:center; gap:8px; flex:none}
 
@@ -291,7 +292,7 @@ button:focus-visible{outline:3px solid var(--accent); outline-offset:2px}
 .cmax{font-size:11px; color:var(--muted); text-align:right; margin-bottom:4px}
 .bars{
   display:grid; grid-auto-flow:column; grid-auto-columns:1fr; gap:3px;
-  height:clamp(90px, 18vh, 140px); align-items:end;
+  height:clamp(90px, 18cqh, 140px); align-items:end;
   border-bottom:1px solid var(--line);
 }
 .bars span{
