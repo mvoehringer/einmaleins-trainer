@@ -474,15 +474,15 @@ const INTERVAL = [0,1,2,4,8,16];      // INTERVAL[box] = Sessions bis wieder fä
 // 'x' ist das Tagesziel: kein eigener Aufgabenraum, sondern alle vier zusammen.
 const MODES = ['x','m','d','p','s','t','n'];
 const MODE = {
-  x: { label:'Alles',    sign:'',  grid:false },
-  m: { label:'Mal',     sign:'·', grid:true  },
-  d: { label:'Geteilt', sign:':', grid:true  },
-  p: { label:'Plus',    sign:'+', grid:false },
-  s: { label:'Minus',   sign:'−', grid:false },
+  x: { label:'Alles',   grid:false },
+  m: { label:'Mal',     grid:true  },
+  d: { label:'Geteilt', grid:true  },
+  p: { label:'Plus',    grid:false },
+  s: { label:'Minus',   grid:false },
   // tab: kurz genug fuer sieben Reiter nebeneinander, label traegt den Knopf
-  t: { label:'Bis 1000', tab:'1000', sign:'', grid:false },
+  t: { label:'Bis 1000', tab:'1000', grid:false },
   // Nicht rechnen, sondern die Zahlen selbst: Nachbarn und Zahlenstrahl
-  n: { label:'Zahlen bis 1000', tab:'Zahlen', sign:'', grid:false }
+  n: { label:'Zahlen bis 1000', tab:'Zahlen', grid:false }
 };
 // Was "Alles" mischt. Der Zahlenraum bis 1000 gehoert bewusst nicht dazu:
 // das Tagesziel soll nicht schwerer werden, weil ein Reiter dazukam.
