@@ -8,7 +8,7 @@ Auf dem iPhone in Safari öffnen → Teilen → *Zum Home-Bildschirm*.
 
 ## Wie es funktioniert
 
-Nicht „richtig oder falsch", sondern **wie schnell**. Wer 7×8 nach acht Sekunden
+Nicht „richtig oder falsch", sondern **wie schnell**. Wer 7·8 nach acht Sekunden
 richtig hat, hat gerechnet statt abgerufen — das zählt weniger. Unter 5 Sekunden
 gilt als auswendig gewusst.
 
