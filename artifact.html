@@ -779,8 +779,9 @@ function narrow(pool, fn){ const s = pool.filter(fn); return s.length ? s : pool
 // Liefert immer { key, task } — die Aufgabe gehört dazu, weil sie bei Plus/Minus
 // erzeugt wird und eine Wiederholung dieselben Zahlen zeigen muss.
 function pickNext(st, ctx){
-  // 1. fällige Korrektur-Wiederholung hat Vorrang
-  const qi = ctx.queue.findIndex(e => e.at <= ctx.asked);
+  // 1. fällige Korrektur-Wiederholung hat Vorrang. Ist das Soll erfüllt, kommt
+  //    jede noch offene sofort dran — die Runde endet erst, wenn alles saß.
+  const qi = ctx.queue.findIndex(e => e.at <= ctx.asked || ctx.asked >= SESSION_LEN);
   if (qi >= 0){ const e = ctx.queue.splice(qi, 1)[0]; return { key: e.key, task: e.task || makeTask(e.key) }; }
 
   let pool = factsOf(st, ctx.mode);
@@ -816,8 +817,9 @@ function pickNext(st, ctx){
   return { key, task: makeTask(key) };
 }
 
-// Die Runde ist vorbei, sobald der Fortschrittsbalken voll ist — nie später.
-const sessionOver = run => run.asked >= SESSION_LEN;
+// Die Runde ist vorbei, wenn das Soll erfüllt ist UND keine falsch beantwortete
+// Aufgabe mehr aussteht. Ein Fehler verlängert die Runde um genau eine Aufgabe.
+const sessionOver = run => run.asked >= SESSION_LEN && !run.queue.length;
 
 // -> 'up' | 'stay' | 'down'
 function grade(st, k, correct, ms){
@@ -1146,7 +1148,9 @@ function next(){
 function showAnswer(text){ $('ans').textContent = text; }
 
 function draw(){
-  $('dots').innerHTML = Array.from({length:SESSION_LEN}, (_,i) =>
+  // Der Balken wächst um jede Aufgabe, die noch einmal drankommt
+  const laenge = Math.max(SESSION_LEN, run.asked + run.queue.length);
+  $('dots').innerHTML = Array.from({length:laenge}, (_,i) =>
     `<i class="${i < run.asked ? 'done' : ''}"></i>`).join('');
   $('pad').querySelector('.ok').disabled = !run.input;
 }
@@ -1179,10 +1183,9 @@ function submit(){
     if (mastered) celebrate(26, 'burst', ...centerOf($('ans')));
     else if (res === 'up') celebrate(8, 'burst', ...centerOf($('ans')));
   } else {
-    // gleiche Aufgabe kommt in dieser Runde nochmal
-    // Wiederholung ins verbleibende Fenster ziehen — die Runde wird davon nie länger.
-    run.queue.push({ key: run.key, task: run.task,
-                     at: Math.min(run.asked + REDO_GAP, SESSION_LEN - 1) });
+    // Dieselbe Aufgabe kommt in dieser Runde nochmal, frühestens nach REDO_GAP.
+    // Kommt sie erst nach dem Soll dran, läuft die Runde eben so lange weiter.
+    run.queue.push({ key: run.key, task: run.task, at: run.asked + REDO_GAP });
     $('stage').classList.add('bad');
     // Die eigene Zahl bleibt stehen: nur so ist zu sehen, was man getippt hat.
     // Die Lösung gehört daneben, nicht ins Feld — sonst liest sie sich als Eingabe.
@@ -1470,19 +1473,37 @@ if (location.hash === '#test'){
   ok('genug perfekte Runden fuellen die Landkarte',
      factsOf(s,'m').filter(k => s.facts[k].solved >= SHADES).length === 100);
 
-  // Runde endet punktgenau bei SESSION_LEN — auch wenn jede zweite Antwort falsch ist
+  // Eine falsche Aufgabe kommt wieder, bis sie sitzt — auch nach dem Soll
+  ok('Wiederholung kommt auch nach dem Soll noch dran', (() => {
+      const c = ctx({ asked: SESSION_LEN,
+                      queue:[{ key:'m:6x8', task:makeTask('m:6x8'), at: SESSION_LEN + 99 }] });
+      return pickNext(mk(), c).key === 'm:6x8' && c.queue.length === 0; })());
+  ok('vor dem Soll wartet die Wiederholung ihren Abstand ab', (() => {
+      const c = ctx({ asked: 5, queue:[{ key:'m:6x8', task:makeTask('m:6x8'), at: 9 }] });
+      pickNext(mk(), c);
+      return c.queue.length === 1; })());
+  ok('Runde ist nicht vorbei, solange etwas offen ist',
+     !sessionOver({ asked: SESSION_LEN, queue:[{ key:'m:6x8', at: 99 }] })
+     && sessionOver({ asked: SESSION_LEN, queue:[] }));
+
+  // Ganze Runde durchspielen: die ersten 20 gehen jede dritte daneben
   s = mk();
   const sim = { asked:0, lastKey:null, hardStreak:0, queue:[], row:0, mode:'m' };
+  const offen = new Set();
   let guard = 0;
   while (!sessionOver(sim) && guard++ < 500){
     const k = pickNext(s, sim).key;
-    const right = sim.asked % 2 === 0;
+    const right = sim.asked >= SESSION_LEN || sim.asked % 3 !== 0;
     grade(s, k, right, 1000);
-    if (!right) sim.queue.push({ key: k, at: Math.min(sim.asked + 1 + REDO_GAP, SESSION_LEN - 1) });
-    sim.asked++; sim.lastKey = k;
+    sim.asked++;
+    if (right) offen.delete(k);
+    else { offen.add(k); sim.queue.push({ key: k, at: sim.asked + REDO_GAP }); }
+    sim.lastKey = k;
   }
-  ok('Runde endet bei genau ' + SESSION_LEN, sim.asked === SESSION_LEN);
-  ok('keine Wiederholung haengt nach', sim.queue.every(e => e.at <= SESSION_LEN - 1));
+  ok('Runde laeuft nicht kuerzer als ' + SESSION_LEN, sim.asked >= SESSION_LEN);
+  ok('Fehler verlaengern die Runde', sim.asked > SESSION_LEN);
+  ok('Runde endet erst, wenn nichts mehr offen ist', !sim.queue.length && guard < 500);
+  ok('am Ende war jede Aufgabe einmal richtig', offen.size === 0);
 
   // Jede begonnene Runde zählt, auch eine abgebrochene
   s = mk();
