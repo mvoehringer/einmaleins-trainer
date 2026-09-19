@@ -90,12 +90,12 @@ button:focus-visible{outline:3px solid var(--accent); outline-offset:2px}
    Bewusst leicht gehalten: sie wählen nur aus, sie sind nicht die Handlung.
    Das visuelle Gewicht gehört dem Üben-Button. */
 .tabs{
-  display:grid; grid-template-columns:repeat(6,1fr); flex:none;
+  display:grid; grid-template-columns:repeat(7,1fr); flex:none;
   border-bottom:1px solid var(--line);
 }
 .tabs button{
-  min-height:44px; font-weight:700; font-size:clamp(13px, 1.9cqh, 15px);
-  color:var(--muted); position:relative; padding:0 2px;
+  min-height:44px; font-weight:700; font-size:clamp(11px, 1.6cqh, 13px);
+  color:var(--muted); position:relative; padding:0 1px;
   border-bottom:3px solid transparent; margin-bottom:-1px;
   transition:color .15s;
 }
@@ -158,6 +158,19 @@ button:focus-visible{outline:3px solid var(--accent); outline-offset:2px}
 }
 .task{font-size:1em; white-space:nowrap}
 .stage.weit .eq{font-size:min(8.6cqw, 4.6cqh, 33px)}
+/* Über der Zeile steht, was gefragt ist: ein Wort („Vorgänger") oder ein Strahl.
+   Leer bleibt sie unsichtbar — die Rechenarten brauchen sie nicht. */
+.frage{
+  color:var(--muted); font-weight:600; text-align:center; width:100%;
+  font-size:min(4.6cqw, 2.4cqh, 18px); letter-spacing:.02em;
+}
+.frage:empty{display:none}
+.strahl{width:100%; max-width:min(100%, 340px); display:block; margin:0 auto}
+.strahl line{stroke:var(--ink); stroke-width:1.4; stroke-linecap:round}
+.strahl .gr{stroke-width:2.2}
+.strahl text{fill:var(--muted); font-size:10px; font-weight:700; text-anchor:middle}
+.strahl .mk{fill:var(--accent)}
+.strahl .q{fill:var(--accent); font-size:15px}
 .answer{
   font-size:1em; color:var(--accent); min-width:3.2ch; text-align:center;
   border-bottom:3px solid var(--line); padding:0 .12ch;
@@ -356,6 +369,7 @@ button:focus-visible{outline:3px solid var(--accent); outline-offset:2px}
       <div class="dots" id="dots"></div>
     </div>
     <div class="stage" id="stage">
+      <div class="frage" id="frage"></div>
       <div class="eq" aria-live="polite" aria-atomic="true">
         <span class="task" id="task"></span>
         <span class="answer" id="ans"></span>
@@ -425,15 +439,17 @@ const INTERVAL = [0,1,2,4,8,16];      // INTERVAL[box] = Sessions bis wieder fä
 // Mal und Geteilt haben je 100 feste Aufgaben. Plus und Minus hätten tausende,
 // deshalb ist dort der "Fakt" ein Aufgabentyp und die Zahlen werden erzeugt.
 // 'x' ist das Tagesziel: kein eigener Aufgabenraum, sondern alle vier zusammen.
-const MODES = ['x','m','d','p','s','t'];
+const MODES = ['x','m','d','p','s','t','n'];
 const MODE = {
   x: { label:'Alles',    sign:'',  grid:false },
   m: { label:'Mal',     sign:'×', grid:true  },
   d: { label:'Geteilt', sign:':', grid:true  },
   p: { label:'Plus',    sign:'+', grid:false },
   s: { label:'Minus',   sign:'−', grid:false },
-  // tab: kurz genug fuer sechs Reiter nebeneinander, label traegt den Knopf
-  t: { label:'Bis 1000', tab:'1000', sign:'', grid:false }
+  // tab: kurz genug fuer sieben Reiter nebeneinander, label traegt den Knopf
+  t: { label:'Bis 1000', tab:'1000', sign:'', grid:false },
+  // Nicht rechnen, sondern die Zahlen selbst: Nachbarn und Zahlenstrahl
+  n: { label:'Zahlen bis 1000', tab:'Zahlen', sign:'', grid:false }
 };
 // Was "Alles" mischt. Der Zahlenraum bis 1000 gehoert bewusst nicht dazu:
 // das Tagesziel soll nicht schwerer werden, weil ein Reiter dazukam.
@@ -520,8 +536,74 @@ const STEPS_K = [
                          between(1, 8-h)*100 + between(9-z, 9)*10 + between(10-e, 9)]; } }
 ];
 
+// Ein Ausschnitt des Zahlenstrahls als SVG. Beschriftet ist nur jeder fuenfte
+// Strich — alles dazwischen muss abgezaehlt werden, genau das ist die Uebung.
+function strahl(von, bis, schritt, marke){
+  const L = 18, R = 302, y = 40;
+  const x = v => Math.round((L + (R - L) * (v - von) / (bis - von)) * 10) / 10;
+  const teile = [`<line x1="${L}" y1="${y}" x2="${R}" y2="${y}"/>`];
+  for (let v = von; v <= bis; v += schritt){
+    const gross = (v - von) % (schritt * 5) === 0;
+    const h = gross ? 9 : 5;
+    teile.push(`<line class="${gross ? 'gr' : ''}" x1="${x(v)}" y1="${y-h}" x2="${x(v)}" y2="${y+h}"/>`);
+    if (gross) teile.push(`<text x="${x(v)}" y="${y+22}">${v}</text>`);
+  }
+  teile.push(`<text class="q" x="${x(marke)}" y="${y-20}">?</text>`);
+  teile.push(`<path class="mk" d="M${x(marke)-6} ${y-16}H${x(marke)+6}L${x(marke)} ${y-7}Z"/>`);
+  return `<svg viewBox="0 0 320 68" class="strahl" role="img" aria-label="Zahlenstrahl ` +
+         `von ${von} bis ${bis}, gesucht ist die Zahl an der Marke">${teile.join('')}</svg>`;
+}
+
+// Der Zahlenraum selbst statt einer Rechnung. Hier liefert gen() die fertige
+// Aufgabe: es gibt keine zwei Summanden, nur eine Zahl, eine Frage davor und
+// manchmal einen Strahl darueber. Jede Antwort bleibt unter 1000 — das
+// Zahlenpad nimmt nur drei Ziffern.
+const nachbar = (frage, zahl, antwort) => ({ frage, text:String(zahl), sep:'→', answer:antwort });
+// Die Marke sitzt nie auf einem Ende: dort steht die Zahl schon daneben.
+function amStrahl(von, bis, schritt){
+  const marke = von + between(1, (bis - von) / schritt - 1) * schritt;
+  return { frage: strahl(von, bis, schritt, marke), text:'?', sep:'=', answer:marke };
+}
+
+const STEPS_N = [
+  { id:'v', name:'Vorgänger', diff:0,
+    gen: () => { const z = between(1,9)*100 + between(0,9)*10 + between(1,9);
+                 return nachbar('Vorgänger', z, z - 1); } },
+
+  { id:'n', name:'Nachfolger', diff:0,
+    gen: () => { const z = between(1,9)*100 + between(0,9)*10 + between(0,8);
+                 return nachbar('Nachfolger', z, z + 1); } },
+
+  { id:'sh', name:'Zahlenstrahl: Hunderter', diff:0,
+    gen: () => amStrahl(0, 1000, 100) },
+
+  // Zehner bleiben im selben Hunderter — der Uebergang ist eine eigene Stufe
+  { id:'z10', name:'10 mehr, 10 weniger', diff:1,
+    gen: () => { const z = between(1,9)*100 + between(1,8)*10 + between(0,9);
+                 return Math.random() < .5 ? nachbar('10 mehr', z, z + 10)
+                                           : nachbar('10 weniger', z, z - 10); } },
+
+  { id:'h100', name:'100 mehr, 100 weniger', diff:1,
+    gen: () => { const z = between(2,8)*100 + between(0,9)*10 + between(0,9);
+                 return Math.random() < .5 ? nachbar('100 mehr', z, z + 100)
+                                           : nachbar('100 weniger', z, z - 100); } },
+
+  { id:'sz', name:'Zahlenstrahl: Zehner', diff:1,
+    gen: () => { const h = between(0,8)*100; return amStrahl(h, h + 100, 10); } },
+
+  // 349 → 350 und 500 → 499: die Stelle springt mit
+  { id:'vn', name:'Nachbarn am Zehner', diff:2,
+    gen: () => { const z = between(1,9)*100 + between(0,9)*10;
+                 return Math.random() < .5 ? nachbar('Vorgänger', z, z - 1)
+                                           : nachbar('Nachfolger', z - 1, z); } },
+
+  { id:'sm', name:'Zahlenstrahl: über den Hunderter', diff:2,
+    gen: () => { const von = between(1,8)*100 + between(1,9)*10;
+                 return amStrahl(von, von + 100, 10); } }
+];
+
 // Welche Typenliste gehoert zu welchem Reiter
-const stepsOf = m => m === 't' ? STEPS_K : STEPS;
+const stepsOf = m => m === 't' ? STEPS_K : m === 'n' ? STEPS_N : STEPS;
 
 function seedFacts(){
   const f = {};
@@ -537,6 +619,7 @@ function seedFacts(){
     f['s:'+st.id] = blank(start);
   }
   for (const st of STEPS_K) f['t:'+st.id] = blank([3,2,1][st.diff]);
+  for (const st of STEPS_N) f['n:'+st.id] = blank([3,2,1][st.diff]);
   return f;
 }
 
@@ -552,7 +635,9 @@ function makeTask(k){
   const m = modeOf(k), body = bodyOf(k);
   if (m === 'm'){ const [a,b] = body.split('x').map(Number); return { text:`${a} × ${b}`, answer:a*b }; }
   if (m === 'd'){ const [p,b] = body.split('/').map(Number); return { text:`${p} : ${b}`, answer:p/b }; }
-  const [a,b] = stepsOf(m).find(s => s.id === body).gen();
+  const step = stepsOf(m).find(s => s.id === body);
+  if (m === 'n') return step.gen();          // Zahlenraum: gen() liefert sie fertig
+  const [a,b] = step.gen();
   // Bis 1000 sind Plus und Minus ein Reiter: die Richtung faellt pro Aufgabe.
   if (m === 'p' || (m === 't' && Math.random() < .5)) return { text:`${a} + ${b}`, answer:a+b };
   return { text:`${a+b} − ${b}`, answer:a };     // Minus ist Plus rückwärts
@@ -973,7 +1058,8 @@ function next(){
   run.task = pick.task;
   run.input = '';
   run.locked = false;
-  $('task').textContent = run.task.text + ' =';
+  $('task').textContent = run.task.text + ' ' + (run.task.sep || '=');
+  $('frage').innerHTML = run.task.frage || '';   // Wort oder Zahlenstrahl, sonst leer
   $('hint').textContent = '';
   // „876 − 189 = 687" ist die laengste Zeile der App und braucht kleinere Ziffern
   $('stage').className = 'stage' + (run.mode === 't' ? ' weit' : '');
@@ -1215,7 +1301,7 @@ if (location.hash === '#test'){
 
   // seedFacts
   const s0 = mk();
-  ok('fuenf Aufgabenraeume, 224 Aufgaben', Object.keys(s0.facts).length === 224);
+  ok('sechs Aufgabenraeume, 232 Aufgaben', Object.keys(s0.facts).length === 232);
   ok('Mal und Geteilt je 100', factsOf(s0,'m').length === 100 && factsOf(s0,'d').length === 100);
   ok('Plus und Minus je acht Typen', factsOf(s0,'p').length === 8 && factsOf(s0,'s').length === 8);
   ok('7x8 startet unter 2x5', s0.facts['m:7x8'].box < s0.facts['m:2x5'].box);
@@ -1372,8 +1458,9 @@ if (location.hash === '#test'){
         () => modeOf(pickNext(mk(), ctx({ mode:'x' })).key)));
       return RECHENARTEN.every(m => gesehen.has(m)); })());
   ok('Gemischt kennt jeden Fakt der vier Rechenarten', factsOf(mk(), 'x').length === 216);
-  ok('Gemischt laesst den Zahlenraum bis 1000 aus', Array.from({length:400},
-     () => pickNext(mk(), ctx({ mode:'x' })).key).every(k => modeOf(k) !== 't'));
+  ok('Gemischt laesst die eigenen Reiter aus', Array.from({length:400},
+     () => pickNext(mk(), ctx({ mode:'x' })).key)
+     .every(k => RECHENARTEN.includes(modeOf(k))));
   ok('Bis 1000 hat acht Typen', factsOf(mk(),'t').length === 8);
   ok('Bis 1000 bleibt bei sich', Array.from({length:300},
      () => pickNext(mk(), ctx({ mode:'t' })).key).every(k => modeOf(k) === 't'));
@@ -1402,6 +1489,51 @@ if (location.hash === '#test'){
       };
       return pruef('e1','e',false) && pruef('e2','e',true)
           && pruef('z1','z',false) && pruef('z2','z',true); })());
+  // --- Zahlen bis 1000: Nachbarn und Zahlenstrahl ---
+  ok('Zahlen hat acht Typen', factsOf(mk(),'n').length === 8);
+  ok('Zahlen bleibt bei sich', Array.from({length:300},
+     () => pickNext(mk(), ctx({ mode:'n' })).key).every(k => modeOf(k) === 'n'));
+  ok('Zahlen passen immer ins Pad', (() => {
+      for (const step of STEPS_N) for (let i = 0; i < 300; i++){
+        const t = makeTask('n:' + step.id);
+        if (!(t.answer >= 0 && t.answer <= 999)) return false;
+        if (t.text !== '?' && +t.text > 999) return false;
+      }
+      return true; })());
+  ok('Vorgaenger und Nachfolger stimmen', (() => {
+      for (const id of ['v','n','vn','z10','h100']) for (let i = 0; i < 300; i++){
+        const t = makeTask('n:' + id);
+        const schritt = { 'Vorgänger':-1, 'Nachfolger':1, '10 mehr':10,
+                          '10 weniger':-10, '100 mehr':100, '100 weniger':-100 }[t.frage];
+        if (t.answer !== +t.text + schritt) return false;
+      }
+      return true; })());
+  ok('Nachbarn am Zehner springen ueber die Stelle', (() => {
+      for (let i = 0; i < 300; i++){
+        const t = makeTask('n:vn');
+        if (Math.floor(t.answer / 10) === Math.floor(+t.text / 10)) return false;
+      }
+      return true; })());
+  ok('Zahlenstrahl: die Marke liegt auf einem Strich im Ausschnitt', (() => {
+      for (const id of ['sh','sz','sm']) for (let i = 0; i < 300; i++){
+        const t = makeTask('n:' + id);
+        const [, von, bis] = t.frage.match(/von (\d+) bis (\d+)/).map(Number);
+        const schritt = (bis - von) / 10;
+        if (t.answer <= von || t.answer >= bis) return false;
+        if ((t.answer - von) % schritt) return false;
+      }
+      return true; })());
+  ok('Zahlenstrahl: jeder fuenfte Strich ist beschriftet', (() => {
+      const t = makeTask('n:sz');
+      const [, von, bis] = t.frage.match(/von (\d+) bis (\d+)/).map(Number);
+      return [von, (von+bis)/2, bis].every(v => t.frage.includes('>' + v + '<')); })());
+  ok('Zahlenstrahl ueber den Hunderter tut das auch', (() => {
+      for (let i = 0; i < 100; i++){
+        const [, von, bis] = makeTask('n:sm').frage.match(/von (\d+) bis (\d+)/).map(Number);
+        if (Math.floor(von / 100) === Math.floor(bis / 100)) return false;
+      }
+      return true; })());
+
   ok('Division ist die Umkehrung', (() => {
       const t = makeTask('d:56/7'); return t.text === '56 : 7' && t.answer === 8; })());
   ok('Malaufgabe stimmt', (() => {
