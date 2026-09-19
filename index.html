@@ -794,6 +794,24 @@ function dueFacts(st){
 // Filter anwenden — aber nie den Topf leeren
 function narrow(pool, fn){ const s = pool.filter(fn); return s.length ? s : pool; }
 
+// Wie schwer fällt ein Bereich? Der Abstand zur vollen Stufe, gemittelt über
+// seine eingeschalteten Aufgaben: 9 bei einem frischen Bereich, 0 bei einem, der
+// sitzt. Die zusätzliche 1 hält auch den fertigen Bereich im Spiel — er kommt
+// dann noch etwa jedes zehnte Mal dran, statt ganz zu verschwinden.
+function schwaeche(st, pool, m){
+  const ks = pool.filter(k => modeOf(k) === m);
+  return 1 + ks.reduce((a, k) => a + (SHADES - st.facts[k].solved), 0) / ks.length;
+}
+
+// Bereich würfeln, gewichtet nach Schwäche — dasselbe Verfahren wie unten für
+// den einzelnen Fakt, nur eine Ebene höher.
+function waehleBereich(st, pool, bereiche){
+  const g = bereiche.map(m => schwaeche(st, pool, m));
+  let r = Math.random() * g.reduce((a, v) => a + v, 0);
+  for (let i = 0; i < bereiche.length; i++){ r -= g[i]; if (r <= 0) return bereiche[i]; }
+  return bereiche[bereiche.length - 1];
+}
+
 // ctx: { asked, lastKey, hardStreak, queue:[{key,task,at}], row, mode }
 // Liefert immer { key, task } — die Aufgabe gehört dazu, weil sie bei Plus/Minus
 // erzeugt wird und eine Wiederholung dieselben Zahlen zeigen muss.
@@ -804,12 +822,12 @@ function pickNext(st, ctx){
   if (qi >= 0){ const e = ctx.queue.splice(qi, 1)[0]; return { key: e.key, task: e.task || makeTask(e.key) }; }
 
   let pool = factsOf(st, ctx.mode);
-  // Gemischt: erst den Bereich würfeln. Sonst gingen Plus und Minus unter,
-  // die zusammen nur 16 der 234 Fakten stellen.
   if (ctx.mode === 'x'){
-    // Nur unter den Bereichen wuerfeln, die noch eingeschaltete Aufgaben haben
+    // Erst den Bereich, dann den Fakt: sonst gingen Plus und Minus unter, die
+    // zusammen nur 16 der 234 Fakten stellen. Nur Bereiche, die noch
+    // eingeschaltete Aufgaben haben, und der schwächste am häufigsten.
     const offen = BEREICHE.filter(m => pool.some(k => modeOf(k) === m));
-    const m = offen[Math.floor(Math.random() * offen.length)];
+    const m = waehleBereich(st, pool, offen);   // einmal würfeln, nicht je Fakt
     pool = pool.filter(k => modeOf(k) === m);
   }
   if (ctx.row) pool = pool.filter(k => inRow(k, ctx.row));
@@ -1593,6 +1611,21 @@ if (location.hash === '#test'){
         () => modeOf(pickNext(mk(), ctx({ mode:'x' })).key)));
       return BEREICHE.every(m => gesehen.has(m)); })());
   ok('Gemischt kennt jeden Fakt', factsOf(mk(), 'x').length === 234);
+  ok('der schwaechere Bereich kommt oefter dran', (() => {
+      const x = mk();
+      factsOf(x,'m').forEach(k => x.facts[k].solved = SHADES);   // Mal sitzt
+      const zaehl = {};
+      for (let i = 0; i < 900; i++){
+        const m = modeOf(pickNext(x, ctx({ mode:'x' })).key);
+        zaehl[m] = (zaehl[m] || 0) + 1;
+      }
+      // Mal hat Gewicht 1, jeder andere Bereich 10 — mindestens fuenffacher Abstand
+      return BEREICHE.filter(m => m !== 'm').every(m => zaehl[m] > 5 * (zaehl.m || 1)); })());
+  ok('ein gekonnter Bereich verschwindet nicht ganz', (() => {
+      const x = mk();
+      factsOf(x,'m').forEach(k => x.facts[k].solved = SHADES);
+      return Array.from({length:900},
+        () => modeOf(pickNext(x, ctx({ mode:'x' })).key)).includes('m'); })());
   ok('Bis 1000 hat acht Typen', factsOf(mk(),'t').length === 8);
   ok('Bis 1000 bleibt bei sich', Array.from({length:300},
      () => pickNext(mk(), ctx({ mode:'t' })).key).every(k => modeOf(k) === 't'));
