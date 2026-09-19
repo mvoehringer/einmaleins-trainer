@@ -315,6 +315,19 @@ button:focus-visible{outline:3px solid var(--accent); outline-offset:2px}
   display:grid; grid-auto-flow:column; grid-auto-columns:1fr; gap:3px;
   font-size:10px; color:var(--muted); text-align:center; padding-top:4px;
 }
+
+/* ---------- Querformat auf dem Telefon ----------
+   Die Lage erzwingen kann nur die installierte App (manifest.json). Im Browser
+   dreht sich stattdessen die App mit: das Telefon liegt quer, die App steht.
+   Die Höhe unterscheidet Telefon von Laptop — dort bleibt alles, wie es ist. */
+@media (orientation:landscape) and (max-height:520px){
+  #app{
+    inset:auto; top:50%; left:50%;
+    width:100vh; height:100vw; max-height:100vw;
+    transform:translate(-50%, -50%) rotate(90deg);
+  }
+  #fx{display:none}   /* Konfetti fiele quer zur Drehung — Deko, die gehen kann */
+}
 </style>
 
 <div id="app">
