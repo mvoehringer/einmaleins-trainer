@@ -465,9 +465,9 @@ const MODE = {
   // Nicht rechnen, sondern die Zahlen selbst: Nachbarn und Zahlenstrahl
   n: { label:'Zahlen bis 1000', tab:'Zahlen', grid:false }
 };
-// Was "Alles" mischt. Der Zahlenraum bis 1000 gehoert bewusst nicht dazu:
-// das Tagesziel soll nicht schwerer werden, weil ein Reiter dazukam.
-const RECHENARTEN = ['m','d','p','s'];
+// Was "Alles" mischt: jeden Bereich. Zu schwer wird es dadurch nicht — was noch
+// nicht drankommen soll, wird einzeln ausgeschaltet (die Kaestchen in der Uebersicht).
+const BEREICHE = ['m','d','p','s','t','n'];
 
 const isEasyN = n => n===1 || n===2 || n===5 || n===10;
 
@@ -680,7 +680,7 @@ const bodyOf = k => k.slice(2);
 // vergisst.
 const factsOf = (st, mode) => Object.keys(st.facts).filter(
   k => !(st.aus && st.aus[k]) &&
-       (mode === 'x' ? RECHENARTEN.includes(modeOf(k)) : modeOf(k) === mode));
+       (mode === 'x' ? BEREICHE.includes(modeOf(k)) : modeOf(k) === mode));
 
 // Der letzte eingeschaltete Typ bleibt an — sonst haette der Reiter nichts zu tun.
 function schalte(st, k, an){
@@ -784,12 +784,12 @@ function pickNext(st, ctx){
   if (qi >= 0){ const e = ctx.queue.splice(qi, 1)[0]; return { key: e.key, task: e.task || makeTask(e.key) }; }
 
   let pool = factsOf(st, ctx.mode);
-  // Gemischt: erst die Rechenart würfeln. Sonst gingen Plus und Minus unter,
-  // die zusammen nur 16 der 216 Fakten stellen.
+  // Gemischt: erst den Bereich würfeln. Sonst gingen Plus und Minus unter,
+  // die zusammen nur 16 der 234 Fakten stellen.
   if (ctx.mode === 'x'){
-    // Nur unter den Rechenarten wuerfeln, die noch eingeschaltete Aufgaben haben
-    const arten = RECHENARTEN.filter(m => pool.some(k => modeOf(k) === m));
-    const m = arten[Math.floor(Math.random() * arten.length)];
+    // Nur unter den Bereichen wuerfeln, die noch eingeschaltete Aufgaben haben
+    const offen = BEREICHE.filter(m => pool.some(k => modeOf(k) === m));
+    const m = offen[Math.floor(Math.random() * offen.length)];
     pool = pool.filter(k => modeOf(k) === m);
   }
   if (ctx.row) pool = pool.filter(k => inRow(k, ctx.row));
@@ -957,7 +957,7 @@ function renderGrid(el, won, mode){
   // Gemischt hat keine eigene Landkarte — es zeigt, wie die vier Rechenarten stehen.
   if (mode === 'x'){
     el.className = 'steps';
-    el.innerHTML = RECHENARTEN.map(m => {
+    el.innerHTML = BEREICHE.map(m => {
       const f = factsOf(st, m).map(k => st.facts[k].solved);
       const stufe = Math.round(f.reduce((a,v) => a+v, 0) / f.length);
       const neu = won && won.some(k => modeOf(k) === m);
@@ -1545,17 +1545,14 @@ if (location.hash === '#test'){
       const good = d.n === 3 && d.right === 1 && d.n - d.right === 2;
       st = save; return good; })());
 
-  // --- Rechenarten ---
+  // --- Bereiche ---
   ok('Reiter mischen sich nicht', Array.from({length:300},
      () => pickNext(mk(), ctx({ mode:'p' })).key).every(k => modeOf(k) === 'p'));
-  ok('Gemischt zieht aus allen vieren', (() => {
-      const gesehen = new Set(Array.from({length:400},
+  ok('Gemischt zieht aus jedem Bereich', (() => {
+      const gesehen = new Set(Array.from({length:600},
         () => modeOf(pickNext(mk(), ctx({ mode:'x' })).key)));
-      return RECHENARTEN.every(m => gesehen.has(m)); })());
-  ok('Gemischt kennt jeden Fakt der vier Rechenarten', factsOf(mk(), 'x').length === 216);
-  ok('Gemischt laesst die eigenen Reiter aus', Array.from({length:400},
-     () => pickNext(mk(), ctx({ mode:'x' })).key)
-     .every(k => RECHENARTEN.includes(modeOf(k))));
+      return BEREICHE.every(m => gesehen.has(m)); })());
+  ok('Gemischt kennt jeden Fakt', factsOf(mk(), 'x').length === 234);
   ok('Bis 1000 hat acht Typen', factsOf(mk(),'t').length === 8);
   ok('Bis 1000 bleibt bei sich', Array.from({length:300},
      () => pickNext(mk(), ctx({ mode:'t' })).key).every(k => modeOf(k) === 't'));
