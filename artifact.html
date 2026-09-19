@@ -291,7 +291,7 @@ button:focus-visible{outline:3px solid var(--accent); outline-offset:2px}
   display:flex; flex-direction:column; gap:clamp(3px, .7cqh, 6px);
 }
 .steps div{
-  display:grid; grid-template-columns:1fr auto; align-items:center; gap:8px;
+  display:grid; grid-template-columns:1fr auto auto; align-items:center; gap:8px;
   font-size:clamp(11px, 1.7cqh, 13px); cursor:pointer;
   padding:clamp(2px, .5cqh, 5px) 4px; border-radius:6px;
 }
@@ -302,6 +302,15 @@ button:focus-visible{outline:3px solid var(--accent); outline-offset:2px}
   display:block; width:clamp(56px, 22cqw, 84px); height:11px; border-radius:3px;
 }
 .links{display:flex; justify-content:center; gap:8px; flex:none}
+/* Ausgeschaltete Typen bleiben sichtbar: man soll sehen, was noch kommt.
+   Das Kaestchen bleibt dabei voll deckend — es ist ja der Weg zurueck. */
+.steps div.aus span, .steps div.aus b{opacity:.32}
+/* Kleiner als die 44px, die sonst gelten: die Zeile traegt Name, Stufe und
+   Schalter nebeneinander, und geschaltet wird von Erwachsenen, nicht im Spiel. */
+.steps input{
+  width:20px; height:20px; margin:0; accent-color:var(--accent);
+  cursor:pointer; flex:none;
+}
 
 /* ---------- Verlauf: ein Balken je Tag, eine Serie ---------- */
 .chart{
@@ -666,8 +675,20 @@ function seedFacts(){
 
 const modeOf = k => k[0];
 const bodyOf = k => k.slice(2);
+// Ausgeschaltete Typen sind ueberall weg: im eigenen Reiter, in "Alles" und in
+// der Statistik. Ein einziger Filter, damit es keine Stelle geben kann, die ihn
+// vergisst.
 const factsOf = (st, mode) => Object.keys(st.facts).filter(
-  k => mode === 'x' ? RECHENARTEN.includes(modeOf(k)) : modeOf(k) === mode);
+  k => !(st.aus && st.aus[k]) &&
+       (mode === 'x' ? RECHENARTEN.includes(modeOf(k)) : modeOf(k) === mode));
+
+// Der letzte eingeschaltete Typ bleibt an — sonst haette der Reiter nichts zu tun.
+function schalte(st, k, an){
+  if (an){ delete st.aus[k]; return true; }
+  if (factsOf(st, modeOf(k)).length <= 1) return false;
+  st.aus[k] = 1;
+  return true;
+}
 
 // Konkrete Aufgabe zu einem Fakt. Bei Plus/Minus sind die Zahlen jedes Mal andere,
 // deshalb hält die Runde das Ergebnis fest — sonst käme die Wiederholung
@@ -703,7 +724,7 @@ function inRow(k, n){
 /* ---------- Persistenz ---------- */
 
 function fresh(){ return { facts: seedFacts(), session: 1, streak: 0, lastDay: null,
-                           shades: SHADES, days: {}, mode: 'x', sahGemischt: 1 }; }
+                           shades: SHADES, days: {}, mode: 'x', sahGemischt: 1, aus: {} }; }
 
 function loadState(){
   try {
@@ -730,6 +751,7 @@ function loadState(){
       });
       s.shades = SHADES;
       if (!s.days) s.days = {};   // Verlauf erst ab jetzt
+      if (!s.aus) s.aus = {};     // nichts ausgeschaltet: neue Typen sind immer dabei
       return s;
     }
   } catch (e) { /* ponytail: kaputter/gesperrter Speicher => frisch anfangen */ }
@@ -765,7 +787,9 @@ function pickNext(st, ctx){
   // Gemischt: erst die Rechenart würfeln. Sonst gingen Plus und Minus unter,
   // die zusammen nur 16 der 216 Fakten stellen.
   if (ctx.mode === 'x'){
-    const m = RECHENARTEN[Math.floor(Math.random() * RECHENARTEN.length)];
+    // Nur unter den Rechenarten wuerfeln, die noch eingeschaltete Aufgaben haben
+    const arten = RECHENARTEN.filter(m => pool.some(k => modeOf(k) === m));
+    const m = arten[Math.floor(Math.random() * arten.length)];
     pool = pool.filter(k => modeOf(k) === m);
   }
   if (ctx.row) pool = pool.filter(k => inRow(k, ctx.row));
@@ -945,11 +969,16 @@ function renderGrid(el, won, mode){
 
   if (!MODE[mode].grid){
     el.className = 'steps';
+    // Geschaltet wird nur auf der Uebersicht — am Rundenende waere es fehl am Platz
+    const schalter = el.id === 'grid';
     el.innerHTML = stepsOf(mode).map(step => {
       const k = mode + ':' + step.id;
-      return `<div data-k="${k}"><span>${step.name}</span>` +
+      return `<div data-k="${k}"${st.aus[k] ? ' class="aus"' : ''}><span>${step.name}</span>` +
              `<b class="s${st.facts[k].solved}${frisch(k) ? ' won' : ''}"` +
-             `${frisch(k) ? delay() : ''}></b></div>`;
+             `${frisch(k) ? delay() : ''}></b>` +
+             (schalter ? `<input type="checkbox" data-k="${k}" title="${step.name} üben"` +
+                         ` aria-label="${step.name} üben"${st.aus[k] ? '' : ' checked'}>` : '') +
+             `</div>`;
     }).join('');
     return;
   }
@@ -1239,6 +1268,12 @@ const legendHTML = 'neu <span class="bar">' +
   '</span> sitzt';
 const legends = [...document.querySelectorAll('.legend')];
 legends.forEach(el => el.innerHTML = legendHTML);
+// Eine Zeile Rueckmeldung dort, wo sonst die Legende steht
+function sagLegende(text){
+  legends[0].classList.add('info');
+  legends[0].textContent = text;
+}
+
 const resetLegend = [
   wireMap($('grid'),  legends[0]),
   wireMap($('grid2'), legends[1])
@@ -1290,6 +1325,21 @@ $('quit').onclick = () => {
 };
 $('logOpen').onclick = () => { renderLog(); show('s-log'); };
 $('logBack').onclick = () => { renderStart(); show('s-start'); };
+// Schalter in der Uebersicht: die Legendenzeile darunter sagt, was passiert ist
+$('grid').addEventListener('change', e => {
+  const box = e.target.closest('input[data-k]');
+  if (!box) return;
+  const k = box.dataset.k, an = box.checked;
+  const name = stepsOf(modeOf(k)).find(x => x.id === bodyOf(k)).name;
+  if (!schalte(st, k, an)){
+    box.checked = true;                      // der letzte Typ bleibt an
+    return sagLegende('Eine Aufgabenart muss anbleiben.');
+  }
+  saveState(st);
+  renderStart();                             // Balken, Statistikzeile und Schalter neu
+  sagLegende(an ? `${name} kommt wieder dran.`
+                : `${name} kommt vorerst nicht mehr dran — auch nicht bei „Alles".`);
+});
 // closest, weil der Zeiger auf einem Segment landen kann statt auf dem Balken
 const showDay = e => {
   const bar = e.target.closest('[data-d]');
@@ -1340,7 +1390,8 @@ window.__einmaleins = { seedFacts, difficulty, factDiff, makeTask, dueFacts, pic
 if (location.hash === '#test'){
   const fails = [];
   const ok = (name, cond) => { if (!cond) fails.push(name); };
-  const mk = () => ({ facts: seedFacts(), session: 1, streak: 0, lastDay: null, shades: SHADES });
+  const mk = () => ({ facts: seedFacts(), session: 1, streak: 0, lastDay: null,
+                      shades: SHADES, aus: {} });
   const ctx = o => Object.assign({ asked:5, lastKey:null, hardStreak:0, queue:[], row:0, mode:'m' }, o);
 
   // seedFacts
@@ -1638,6 +1689,38 @@ if (location.hash === '#test'){
       };
       return pruef('e1', false) && pruef('d1', false)
           && pruef('e2', true)  && pruef('d2', true); })());
+
+  // --- Aufgabentypen aus- und wieder einschalten ---
+  ok('ausgeschaltet heisst weg aus dem eigenen Reiter', (() => {
+      const x = mk();
+      return schalte(x, 'p:e2', false) && !factsOf(x,'p').includes('p:e2')
+             && factsOf(x,'p').length === 7; })());
+  ok('ausgeschaltet heisst auch weg aus Gemischt', (() => {
+      const x = mk();
+      schalte(x, 'p:e2', false);
+      return !factsOf(x,'x').includes('p:e2')
+             && Array.from({length:400}, () => pickNext(x, ctx({ mode:'x' })).key)
+                .every(k => k !== 'p:e2'); })());
+  ok('wieder eingeschaltet ist wieder dabei', (() => {
+      const x = mk();
+      schalte(x,'p:e2',false); schalte(x,'p:e2',true);
+      return factsOf(x,'p').includes('p:e2'); })());
+  ok('der letzte Typ laesst sich nicht ausschalten', (() => {
+      const x = mk();
+      factsOf(x,'p').slice(0, -1).forEach(k => schalte(x, k, false));
+      const letzter = factsOf(x,'p')[0];
+      return factsOf(x,'p').length === 1 && schalte(x, letzter, false) === false
+             && factsOf(x,'p').includes(letzter); })());
+  ok('Gemischt kommt mit einer fast leeren Rechenart zurecht', (() => {
+      const x = mk();
+      factsOf(x,'p').slice(0, -1).forEach(k => schalte(x, k, false));
+      const erlaubt = factsOf(x,'x');
+      return Array.from({length:300}, () => pickNext(x, ctx({ mode:'x' })).key)
+             .every(k => erlaubt.includes(k)); })());
+  ok('Statistik zaehlt nur eingeschaltete Aufgaben', (() => {
+      const x = mk();
+      schalte(x,'n:sm',false); schalte(x,'n:nh',false);
+      return factsOf(x,'n').length === 8; })());
 
   // --- Reihen-Zustand ---
   ok('gekonnte Reihe wird als sitzend erkannt', (() => {
