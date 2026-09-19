@@ -177,6 +177,9 @@ button:focus-visible{outline:3px solid var(--accent); outline-offset:2px}
 }
 .task{font-size:1em; white-space:nowrap}
 .stage.weit .eq{font-size:min(8.6cqw, 4.6cqh, 33px)}
+/* Rueckwaerts gefragt, rueckwaerts gesetzt: das Feld steht links von der Zahl,
+   da wo der Vorgaenger auch auf dem Zahlenstrahl liegt. */
+.stage.links .eq{flex-direction:row-reverse}
 /* Über der Zeile steht, was gefragt ist: ein Wort („Vorgänger") oder ein Strahl.
    Leer bleibt sie unsichtbar — die Rechenarten brauchen sie nicht. */
 .frage{
@@ -577,7 +580,11 @@ function strahl(von, bis, schritt, marke){
 // Aufgabe: es gibt keine zwei Summanden, nur eine Zahl, eine Frage davor und
 // manchmal einen Strahl darueber. Jede Antwort bleibt unter 1000 — das
 // Zahlenpad nimmt nur drei Ziffern.
-const nachbar = (frage, zahl, antwort) => ({ frage, text:String(zahl), sep:'→', answer:antwort });
+const nachbar = (frage, zahl, antwort) => ({
+  frage, text:String(zahl), answer:antwort,
+  // Kleiner heisst links — Pfeil und Platz des Feldes folgen der Zahl
+  sep: antwort < zahl ? '←' : '→', links: antwort < zahl
+});
 // Die Marke sitzt nie auf einem Ende: dort steht die Zahl schon daneben.
 function amStrahl(von, bis, schritt){
   const marke = von + between(1, (bis - von) / schritt - 1) * schritt;
@@ -1077,11 +1084,13 @@ function next(){
   run.task = pick.task;
   run.input = '';
   run.locked = false;
-  $('task').textContent = run.task.text + ' ' + (run.task.sep || '=');
-  $('frage').innerHTML = run.task.frage || '';   // Wort oder Zahlenstrahl, sonst leer
+  const t = run.task;
+  $('task').textContent = t.links ? t.sep + ' ' + t.text : t.text + ' ' + (t.sep || '=');
+  $('frage').innerHTML = t.frage || '';          // Wort oder Zahlenstrahl, sonst leer
   $('hint').textContent = '';
   // „876 − 189 = 687" ist die laengste Zeile der App und braucht kleinere Ziffern
-  $('stage').className = 'stage' + (run.mode === 't' ? ' weit' : '');
+  $('stage').className = 'stage' + (run.mode === 't' ? ' weit' : '')
+                                 + (t.links ? ' links' : '');
   zurueckZumPad();
   showAnswer('');
   draw();
@@ -1526,6 +1535,14 @@ if (location.hash === '#test'){
         const schritt = { 'Vorgänger':-1, 'Nachfolger':1, '10 mehr':10,
                           '10 weniger':-10, '100 mehr':100, '100 weniger':-100 }[t.frage];
         if (t.answer !== +t.text + schritt) return false;
+      }
+      return true; })());
+  ok('rueckwaerts zeigt der Pfeil nach links', (() => {
+      for (const id of ['v','n','vn','z10','h100']) for (let i = 0; i < 200; i++){
+        const t = makeTask('n:' + id);
+        const zurueck = t.answer < +t.text;
+        if (t.links !== zurueck) return false;
+        if (t.sep !== (zurueck ? '←' : '→')) return false;
       }
       return true; })());
   ok('Nachbarn am Zehner springen ueber die Stelle', (() => {
