@@ -1131,8 +1131,9 @@ function submit(){
     run.queue.push({ key: run.key, task: run.task,
                      at: Math.min(run.asked + REDO_GAP, SESSION_LEN - 1) });
     $('stage').classList.add('bad');
-    showAnswer(run.task.answer);          // die Lösung steht jetzt in der Zeile
-    $('hint').textContent = `Du hattest ${run.input} — richtig ist ${run.task.answer}`;
+    // Die eigene Zahl bleibt stehen: nur so ist zu sehen, was man getippt hat.
+    // Die Lösung gehört daneben, nicht ins Feld — sonst liest sie sich als Eingabe.
+    $('hint').textContent = `Richtig ist ${run.task.answer}`;
     warteAufBestaetigung();
   }
   draw();
