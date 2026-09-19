@@ -634,6 +634,20 @@ const STEPS_N = [
                  return Math.random() < .5 ? nachbar('100 mehr', z, z + 100)
                                            : nachbar('100 weniger', z, z - 100); } },
 
+  // Auf welchen glatten Zehner/Hunderter faellt die Zahl zurueck, auf welchen vor?
+  // Die Zahl ist nie selbst glatt, sonst waere der Nachbar zweideutig.
+  { id:'nz', name:'Nachbarzehner', diff:1,
+    gen: () => { const z = between(10, 98)*10 + between(1,9);   // 101 bis 989
+                 const davor = z - z % 10;
+                 return Math.random() < .5 ? nachbar('Zehner davor', z, davor)
+                                           : nachbar('Zehner danach', z, davor + 10); } },
+
+  { id:'nh', name:'Nachbarhunderter', diff:1,
+    gen: () => { const z = between(1,8)*100 + between(1,99);    // 101 bis 899
+                 const davor = z - z % 100;
+                 return Math.random() < .5 ? nachbar('Hunderter davor', z, davor)
+                                           : nachbar('Hunderter danach', z, davor + 100); } },
+
   { id:'sz', name:'Zahlenstrahl: Zehner', diff:1,
     gen: () => { const h = between(0,8)*100; return amStrahl(h, h + 100, 10); } },
 
@@ -1350,7 +1364,7 @@ if (location.hash === '#test'){
 
   // seedFacts
   const s0 = mk();
-  ok('sechs Aufgabenraeume, 232 Aufgaben', Object.keys(s0.facts).length === 232);
+  ok('sechs Aufgabenraeume, 234 Aufgaben', Object.keys(s0.facts).length === 234);
   ok('Mal und Geteilt je 100', factsOf(s0,'m').length === 100 && factsOf(s0,'d').length === 100);
   ok('Plus und Minus je acht Typen', factsOf(s0,'p').length === 8 && factsOf(s0,'s').length === 8);
   ok('7x8 startet unter 2x5', s0.facts['m:7x8'].box < s0.facts['m:2x5'].box);
@@ -1539,7 +1553,7 @@ if (location.hash === '#test'){
       return pruef('e1','e',false) && pruef('e2','e',true)
           && pruef('z1','z',false) && pruef('z2','z',true); })());
   // --- Zahlen bis 1000: Nachbarn und Zahlenstrahl ---
-  ok('Zahlen hat acht Typen', factsOf(mk(),'n').length === 8);
+  ok('Zahlen hat zehn Typen', factsOf(mk(),'n').length === 10);
   ok('Zahlen bleibt bei sich', Array.from({length:300},
      () => pickNext(mk(), ctx({ mode:'n' })).key).every(k => modeOf(k) === 'n'));
   ok('Zahlen passen immer ins Pad', (() => {
@@ -1558,11 +1572,19 @@ if (location.hash === '#test'){
       }
       return true; })());
   ok('rueckwaerts zeigt der Pfeil nach links', (() => {
-      for (const id of ['v','n','vn','z10','h100']) for (let i = 0; i < 200; i++){
+      for (const id of ['v','n','vn','z10','h100','nz','nh']) for (let i = 0; i < 200; i++){
         const t = makeTask('n:' + id);
         const zurueck = t.answer < +t.text;
         if (t.links !== zurueck) return false;
         if (t.sep !== (zurueck ? '←' : '→')) return false;
+      }
+      return true; })());
+  ok('Nachbarzehner und -hunderter sind glatt und liegen daneben', (() => {
+      for (const [id, schritt] of [['nz',10],['nh',100]]) for (let i = 0; i < 300; i++){
+        const t = makeTask('n:' + id), z = +t.text;
+        if (z % schritt === 0) return false;              // sonst zweideutig
+        if (t.answer % schritt !== 0) return false;       // Antwort ist immer glatt
+        if (Math.abs(t.answer - z) >= schritt) return false;
       }
       return true; })());
   ok('Nachbarn am Zehner springen ueber die Stelle', (() => {
