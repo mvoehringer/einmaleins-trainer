@@ -678,6 +678,11 @@ function fitCanvas(){
 fitCanvas();
 addEventListener('resize', fitCanvas);
 
+// iOS Safari ignoriert user-scalable=no, hoert aber auf diese Events.
+// Doppeltipp-Zoom deckt schon touch-action:manipulation ab.
+['gesturestart','gesturechange','gestureend']
+  .forEach(t => addEventListener(t, e => e.preventDefault(), { passive:false }));
+
 // mode: 'burst' = Sternchen vom Punkt weg, 'rain' = Konfetti von oben
 function celebrate(n, mode, x, y){
   if (calm) return;

@@ -2,7 +2,7 @@
 <html lang="de">
 <head>
 <meta charset="utf-8">
-<meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
+<meta name="viewport" content="width=device-width, initial-scale=1, maximum-scale=1, user-scalable=no, viewport-fit=cover">
 <title>Hedi Kopfrechnen</title>
 
 <!-- Als App auf dem Home-Bildschirm: iOS braucht dafür kein Manifest,
@@ -696,6 +696,11 @@ function fitCanvas(){
 }
 fitCanvas();
 addEventListener('resize', fitCanvas);
+
+// iOS Safari ignoriert user-scalable=no, hoert aber auf diese Events.
+// Doppeltipp-Zoom deckt schon touch-action:manipulation ab.
+['gesturestart','gesturechange','gestureend']
+  .forEach(t => addEventListener(t, e => e.preventDefault(), { passive:false }));
 
 // mode: 'burst' = Sternchen vom Punkt weg, 'rain' = Konfetti von oben
 function celebrate(n, mode, x, y){
