@@ -90,7 +90,7 @@ button:focus-visible{outline:3px solid var(--accent); outline-offset:2px}
    Bewusst leicht gehalten: sie wählen nur aus, sie sind nicht die Handlung.
    Das visuelle Gewicht gehört dem Üben-Button. */
 .tabs{
-  display:grid; grid-template-columns:repeat(5,1fr); flex:none;
+  display:grid; grid-template-columns:repeat(6,1fr); flex:none;
   border-bottom:1px solid var(--line);
 }
 .tabs button{
@@ -157,6 +157,7 @@ button:focus-visible{outline:3px solid var(--accent); outline-offset:2px}
   width:100%;
 }
 .task{font-size:1em; white-space:nowrap}
+.stage.weit .eq{font-size:min(8.6cqw, 4.6cqh, 33px)}
 .answer{
   font-size:1em; color:var(--accent); min-width:3.2ch; text-align:center;
   border-bottom:3px solid var(--line); padding:0 .12ch;
@@ -424,14 +425,18 @@ const INTERVAL = [0,1,2,4,8,16];      // INTERVAL[box] = Sessions bis wieder fä
 // Mal und Geteilt haben je 100 feste Aufgaben. Plus und Minus hätten tausende,
 // deshalb ist dort der "Fakt" ein Aufgabentyp und die Zahlen werden erzeugt.
 // 'x' ist das Tagesziel: kein eigener Aufgabenraum, sondern alle vier zusammen.
-const MODES = ['x','m','d','p','s'];
+const MODES = ['x','m','d','p','s','t'];
 const MODE = {
   x: { label:'Alles',    sign:'',  grid:false },
   m: { label:'Mal',     sign:'×', grid:true  },
   d: { label:'Geteilt', sign:':', grid:true  },
   p: { label:'Plus',    sign:'+', grid:false },
-  s: { label:'Minus',   sign:'−', grid:false }
+  s: { label:'Minus',   sign:'−', grid:false },
+  // tab: kurz genug fuer sechs Reiter nebeneinander, label traegt den Knopf
+  t: { label:'Bis 1000', tab:'1000', sign:'', grid:false }
 };
+// Was "Alles" mischt. Der Zahlenraum bis 1000 gehoert bewusst nicht dazu:
+// das Tagesziel soll nicht schwerer werden, weil ein Reiter dazukam.
 const RECHENARTEN = ['m','d','p','s'];
 
 const isEasyN = n => n===1 || n===2 || n===5 || n===10;
@@ -477,6 +482,47 @@ const STEPS = [
                  return [t*10 + e, between(1, 8-t)*10 + between(10-e, 9)]; } }
 ];
 
+// Dasselbe bis 1000, wie es in der dritten Klasse drankommt. Hunderter, Zehner
+// und Einer werden getrennt gewuerfelt: nur so ist "mit/ohne Uebergang"
+// garantiert und die 1000 wird nie gerissen.
+const STEPS_K = [
+  { id:'h', name:'glatte Hunderter', diff:0,
+    gen: () => { const h = between(1,8); return [h*100, between(1, 9-h)*100]; } },
+
+  { id:'vh', name:'volle Hunderter dazu', diff:0,
+    gen: () => { const h = between(1,8);
+                 return [h*100 + between(0,9)*10 + between(0,9), between(1, 9-h)*100]; } },
+
+  { id:'e1', name:'einstellig, kein Übergang', diff:1,
+    gen: () => { const e = between(0,8);
+                 return [between(1,9)*100 + between(0,9)*10 + e, between(1, 9-e)]; } },
+
+  { id:'e2', name:'einstellig mit Übergang', diff:2,
+    gen: () => { const e = between(1,9);
+                 return [between(1,8)*100 + between(0,9)*10 + e, between(10-e, 9)]; } },
+
+  { id:'z1', name:'volle Zehner dazu', diff:1,
+    gen: () => { const z = between(0,8);
+                 return [between(1,9)*100 + z*10 + between(0,9), between(1, 9-z)*10]; } },
+
+  { id:'z2', name:'Zehner mit Hunderterübergang', diff:2,
+    gen: () => { const z = between(1,9);
+                 return [between(1,8)*100 + z*10 + between(0,9), between(10-z, 9)*10]; } },
+
+  { id:'d1', name:'dreistellig, kein Übergang', diff:1,
+    gen: () => { const e = between(0,9), z = between(0,9), h = between(1,8);
+                 return [h*100 + z*10 + e,
+                         between(1, 9-h)*100 + between(0, 9-z)*10 + between(0, 9-e)]; } },
+
+  { id:'d2', name:'dreistellig mit Übergang', diff:2,
+    gen: () => { const e = between(1,9), z = between(1,9), h = between(1,7);
+                 return [h*100 + z*10 + e,
+                         between(1, 8-h)*100 + between(9-z, 9)*10 + between(10-e, 9)]; } }
+];
+
+// Welche Typenliste gehoert zu welchem Reiter
+const stepsOf = m => m === 't' ? STEPS_K : STEPS;
+
 function seedFacts(){
   const f = {};
   const blank = box => ({ box, solved: 0, lastSession: 0, times: [], tries: 0, wrong: 0 });
@@ -490,14 +536,14 @@ function seedFacts(){
     f['p:'+st.id] = blank(start);
     f['s:'+st.id] = blank(start);
   }
+  for (const st of STEPS_K) f['t:'+st.id] = blank([3,2,1][st.diff]);
   return f;
 }
 
 const modeOf = k => k[0];
 const bodyOf = k => k.slice(2);
-const factsOf = (st, mode) => mode === 'x'
-  ? Object.keys(st.facts)
-  : Object.keys(st.facts).filter(k => modeOf(k) === mode);
+const factsOf = (st, mode) => Object.keys(st.facts).filter(
+  k => mode === 'x' ? RECHENARTEN.includes(modeOf(k)) : modeOf(k) === mode);
 
 // Konkrete Aufgabe zu einem Fakt. Bei Plus/Minus sind die Zahlen jedes Mal andere,
 // deshalb hält die Runde das Ergebnis fest — sonst käme die Wiederholung
@@ -506,8 +552,9 @@ function makeTask(k){
   const m = modeOf(k), body = bodyOf(k);
   if (m === 'm'){ const [a,b] = body.split('x').map(Number); return { text:`${a} × ${b}`, answer:a*b }; }
   if (m === 'd'){ const [p,b] = body.split('/').map(Number); return { text:`${p} : ${b}`, answer:p/b }; }
-  const [a,b] = STEPS.find(s => s.id === body).gen();
-  if (m === 'p') return { text:`${a} + ${b}`, answer:a+b };
+  const [a,b] = stepsOf(m).find(s => s.id === body).gen();
+  // Bis 1000 sind Plus und Minus ein Reiter: die Richtung faellt pro Aufgabe.
+  if (m === 'p' || (m === 't' && Math.random() < .5)) return { text:`${a} + ${b}`, answer:a+b };
   return { text:`${a+b} − ${b}`, answer:a };     // Minus ist Plus rückwärts
 }
 
@@ -516,7 +563,7 @@ function factDiff(k){
   const m = modeOf(k), body = bodyOf(k);
   if (m === 'm') return difficulty(...body.split('x').map(Number));
   if (m === 'd'){ const [p,b] = body.split('/').map(Number); return difficulty(p/b, b); }
-  return STEPS.find(s => s.id === body).diff;
+  return stepsOf(m).find(s => s.id === body).diff;
 }
 
 // Gehört ein Fakt zur Reihe n? (nur Mal und Geteilt)
@@ -772,7 +819,7 @@ function renderGrid(el, won, mode){
 
   if (!MODE[mode].grid){
     el.className = 'steps';
-    el.innerHTML = STEPS.map(step => {
+    el.innerHTML = stepsOf(mode).map(step => {
       const k = mode + ':' + step.id;
       return `<div data-k="${k}"><span>${step.name}</span>` +
              `<b class="s${st.facts[k].solved}${frisch(k) ? ' won' : ''}"` +
@@ -854,7 +901,8 @@ function renderStart(){
 function renderTabs(){
   $('go').textContent = MODE[st.mode].label + ' üben';
   $('tabs').innerHTML = MODES.map(m =>
-    `<button data-mode="${m}" aria-selected="${m === st.mode}">${MODE[m].label}</button>`).join('');
+    `<button data-mode="${m}" aria-selected="${m === st.mode}">` +
+    `${MODE[m].tab || MODE[m].label}</button>`).join('');
 }
 
 /* ---------- Verlauf zeichnen ---------- */
@@ -927,7 +975,8 @@ function next(){
   run.locked = false;
   $('task').textContent = run.task.text + ' =';
   $('hint').textContent = '';
-  $('stage').className = 'stage';
+  // „876 − 189 = 687" ist die laengste Zeile der App und braucht kleinere Ziffern
+  $('stage').className = 'stage' + (run.mode === 't' ? ' weit' : '');
   zurueckZumPad();
   showAnswer('');
   draw();
@@ -1035,7 +1084,7 @@ function factLine(k){
   const m = modeOf(k), body = bodyOf(k);
   const name = m === 'm' ? body.replace('x', ' × ')
              : m === 'd' ? body.replace('/', ' : ')
-             : STEPS.find(x => x.id === body).name;
+             : stepsOf(m).find(x => x.id === body).name;
   if (!f.tries) return `${name} — noch nicht geübt`;
   return `${name} — ${f.tries} mal gerechnet · ${f.tries - f.wrong} richtig, ${f.wrong} falsch`;
 }
@@ -1166,7 +1215,7 @@ if (location.hash === '#test'){
 
   // seedFacts
   const s0 = mk();
-  ok('vier Rechenarten, 216 Aufgaben', Object.keys(s0.facts).length === 216);
+  ok('fuenf Aufgabenraeume, 224 Aufgaben', Object.keys(s0.facts).length === 224);
   ok('Mal und Geteilt je 100', factsOf(s0,'m').length === 100 && factsOf(s0,'d').length === 100);
   ok('Plus und Minus je acht Typen', factsOf(s0,'p').length === 8 && factsOf(s0,'s').length === 8);
   ok('7x8 startet unter 2x5', s0.facts['m:7x8'].box < s0.facts['m:2x5'].box);
@@ -1322,7 +1371,37 @@ if (location.hash === '#test'){
       const gesehen = new Set(Array.from({length:400},
         () => modeOf(pickNext(mk(), ctx({ mode:'x' })).key)));
       return RECHENARTEN.every(m => gesehen.has(m)); })());
-  ok('Gemischt kennt jeden Fakt', factsOf(mk(), 'x').length === 216);
+  ok('Gemischt kennt jeden Fakt der vier Rechenarten', factsOf(mk(), 'x').length === 216);
+  ok('Gemischt laesst den Zahlenraum bis 1000 aus', Array.from({length:400},
+     () => pickNext(mk(), ctx({ mode:'x' })).key).every(k => modeOf(k) !== 't'));
+  ok('Bis 1000 hat acht Typen', factsOf(mk(),'t').length === 8);
+  ok('Bis 1000 bleibt bei sich', Array.from({length:300},
+     () => pickNext(mk(), ctx({ mode:'t' })).key).every(k => modeOf(k) === 't'));
+  ok('Bis 1000 reisst die 1000 nie', (() => {
+      for (const step of STEPS_K) for (let i = 0; i < 500; i++){
+        const t = makeTask('t:' + step.id);
+        const [x,,y] = t.text.split(' ');
+        if (+x > 999 || +y > 999 || t.answer > 999 || t.answer < 0) return false;
+      }
+      return true; })());
+  ok('Bis 1000 rechnet in beide Richtungen', (() => {
+      const zeichen = new Set(Array.from({length:200},
+        () => makeTask('t:d1').text.split(' ')[1]));
+      return zeichen.has('+') && zeichen.has('−'); })());
+  ok('Bis 1000: Uebergangs-Typen halten ihre Zusage', (() => {
+      const pruef = (id, stelle, soll) => {
+        for (let i = 0; i < 500; i++){
+          const t = makeTask('t:' + id);
+          const [x,,y] = t.text.split(' ');
+          const [a,b] = t.text.includes('+') ? [+x,+y] : [+x - +y, +y];
+          const uebertrag = stelle === 'e' ? (a % 10) + (b % 10) > 9
+                          : Math.floor(a/10) % 10 + Math.floor(b/10) % 10 > 9;
+          if (uebertrag !== soll) return false;
+        }
+        return true;
+      };
+      return pruef('e1','e',false) && pruef('e2','e',true)
+          && pruef('z1','z',false) && pruef('z2','z',true); })());
   ok('Division ist die Umkehrung', (() => {
       const t = makeTask('d:56/7'); return t.text === '56 : 7' && t.answer === 8; })());
   ok('Malaufgabe stimmt', (() => {
